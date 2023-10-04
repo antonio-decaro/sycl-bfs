@@ -30,11 +30,10 @@ void sm_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl::event>& 
     do {
         *changed = false;
         auto e = queue.submit([&](sycl::handler& h) {
-            s::stream os{128, 16, h};
             auto offsets_acc = data.offsets.get_access<s::access::mode::read>(h);
             auto edges_acc = data.edges.get_access<s::access::mode::read>(h);
             auto distances_acc = data.distances.get_access<s::access::mode::read_write>(h);
-            auto parents_acc = data.parents.get_access<s::access::mode::read_write>(h);
+            auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(h);
 
             h.parallel_for(s::range<1>{data.num_nodes}, [=, num_nodes=data.num_nodes](s::id<1> idx) {
                 int node = idx[0];
@@ -54,6 +53,8 @@ void sm_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl::event>& 
         e.wait();
         level++;
     } while(*changed);
+
+    std::cout << "[*] Max depth reached: " << level << std::endl;
 }
 
 void SimpleBFS::run() {
