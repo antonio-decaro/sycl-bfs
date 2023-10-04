@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
         if (argc >= 3) {
             std::ofstream out(argv[2]);
             for (index_type i = 0; i < data.parents.size(); i++) {
-                std::cout << i << " Parent: " << data.parents[i] << " Distance: " << data.distances[i] << std::endl;
+                out << i << " Parent: " << data.parents[i] << " Distance: " << data.distances[i] << std::endl;
             }
             out.close();
         }
