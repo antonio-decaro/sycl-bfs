@@ -11,6 +11,7 @@
 
 namespace s = sycl;
 
+[[deprecated("This function is not required anymore to copy data back to the host.")]]
 void copy_data(SYCL_GraphData& sycl_data, HostData& data) {
     auto dist_acc = sycl_data.distances.get_host_access();
     auto parent_acc = sycl_data.parents.get_host_access();
@@ -80,6 +81,4 @@ void SimpleBFS::run() {
 
     std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
     std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
-
-    copy_data(sycl_data, data);
 }
