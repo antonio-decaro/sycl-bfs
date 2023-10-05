@@ -11,9 +11,9 @@
 
 namespace s = sycl;
 
-void copy_data(SYCL_GraphData& sycl_data, HostData& data) {
-    sycl_data.distances.set_final_data(data.distances.data());
-    sycl_data.parents.set_final_data(data.parents.data());
+void write_back(SYCL_GraphData& sycl_data) {
+    sycl_data.distances.set_final_data(sycl_data.host_data.distances.data());
+    sycl_data.parents.set_final_data(sycl_data.host_data.parents.data());
     sycl_data.distances.set_write_back(true);
     sycl_data.parents.set_write_back(true);
 }
@@ -147,7 +147,7 @@ void SimpleBFS::run() {
         duration += (end - start);
     }
 
-    copy_data(sycl_data, data); 
+    write_back(sycl_data); 
 
     std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
     std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;

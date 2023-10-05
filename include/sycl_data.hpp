@@ -8,7 +8,8 @@
 
 class SYCL_GraphData {
 public:
-    SYCL_GraphData(HostData& data) : 
+    SYCL_GraphData(HostData& data) :
+        host_data(data),
         num_nodes(data.num_nodes),
         offsets(sycl::buffer<index_type, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
         edges(sycl::buffer<index_type, 1>{data.csr.edges.data(), sycl::range{data.csr.edges.size()}}),
@@ -20,6 +21,7 @@ public:
     }
 
     size_t num_nodes;
+    HostData& host_data;
     sycl::buffer<index_type, 1> offsets, edges, distances, parents;
 };
 
