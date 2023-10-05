@@ -15,9 +15,7 @@ public:
         distances(sycl::buffer<index_type, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
         parents(sycl::buffer<index_type, 1>{data.parents.data(), sycl::range{data.parents.size()}})
     {
-        // distances.set_final_data(data.distances.data());
         distances.set_write_back(false);
-        // parents.set_final_data(data.parents.data());
         parents.set_write_back(false);
     }
 
