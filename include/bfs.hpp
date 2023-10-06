@@ -17,10 +17,10 @@ public:
 
 class TileBFS {
 private:
-    CSRHostData& data;
+    MatrixHostData& data;
 
 public:
-    TileBFS(CSRHostData& data) : 
+    TileBFS(MatrixHostData& data) : 
         data(data) {}
     
     void run();

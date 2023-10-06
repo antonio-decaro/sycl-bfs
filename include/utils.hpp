@@ -52,31 +52,21 @@ CSRHostData build_csr_host_data(const std::vector<std::vector<index_type>>& adja
     return host_data;
 }
 
-MatrixHostData build_matrix_host_data(const std::vector<std::vector<index_type>>& adjacency_list) {
+// TODO: fix roadnet can not be loaded (too large)
+MatrixHostData build_adj_matrix(std::string path) {
     MatrixHostData host_data;
-    host_data.adj_matrix = build_adj_matrix(adjacency_list);
-    host_data.num_nodes = host_data.adj_matrix.size();
-    return host_data;
-}
-
-
-std::vector<std::vector<index_type>> read_adjacency_list(std::string path) {
-    std::vector<std::vector<index_type>> adjacency_list;
-    size_t num_nodes;
     std::ifstream file(path);
-
-    int num_edges = 0;
-    file >> num_nodes;
-    adjacency_list.resize(num_nodes);
+    file >> host_data.num_nodes;
+    std::cout << "[*] s : " << host_data.num_nodes << std::endl;
+    host_data.adj_matrix = std::vector<std::vector<char>>(host_data.num_nodes, std::vector<char>(host_data.num_nodes, 0));
+    std::cout << "[*] Number of nodes: " << host_data.num_nodes << std::endl;
     int src, dst;
-    int i = 0;
     while (file >> src >> dst) {
-        adjacency_list[src].push_back(dst);
-        num_edges++;
+        host_data.adj_matrix[src][dst] = 1;
     }
     file.close();
 
-    return adjacency_list;
+    return host_data;
 }
 
 std::vector<std::vector<index_type>> read_undirected_graph_from_file(std::string path) {

@@ -22,6 +22,7 @@ set(INCLUDES
     include/sycl_data.hpp
     include/types.hpp
     include/utils.hpp
+    include/utils_tiles.hpp
     include/kernel_sizes.hpp
 )
 
