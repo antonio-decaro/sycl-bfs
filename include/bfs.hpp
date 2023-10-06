@@ -10,8 +10,6 @@ public:
         data(data) {}
 
     void run();
-
-    std::vector<nodeid_t> get_result() { return data.parents; }
 };
 
 class MultipleSimpleBFS {
