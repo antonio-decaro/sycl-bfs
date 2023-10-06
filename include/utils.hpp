@@ -24,8 +24,25 @@ CSR build_csr(const std::vector<std::vector<index_type>>& adjacency_list) {
     return csr;
 }
 
-HostData build_host_data(const std::vector<std::vector<index_type>>& adjacency_list) {
-    HostData host_data;
+std::vector<std::vector<char>> build_adj_matrix(const std::vector<std::vector<index_type>>& adjacency_list) {
+    size_t num_nodes = adjacency_list.size();
+    std::vector<std::vector<char>> adj_matrix(num_nodes);
+    for (index_type i = 0; i < num_nodes; i++) {
+        adj_matrix[i].resize(num_nodes);
+        for (index_type j = 0; j < num_nodes; j++) {
+            adj_matrix[i][j] = 0;
+        }
+    }
+    for (index_type i = 0; i < num_nodes; i++) {
+        for (index_type j = 0; j < adjacency_list[i].size(); j++) {
+            adj_matrix[i][adjacency_list[i][j]] = 1;
+        }
+    }
+    return adj_matrix;
+}
+
+CSRHostData build_csr_host_data(const std::vector<std::vector<index_type>>& adjacency_list) {
+    CSRHostData host_data;
     host_data.csr = build_csr(adjacency_list);
     host_data.num_nodes = host_data.csr.offsets.size() - 1;
     host_data.distances.resize(host_data.num_nodes);
@@ -35,8 +52,15 @@ HostData build_host_data(const std::vector<std::vector<index_type>>& adjacency_l
     return host_data;
 }
 
+MatrixHostData build_matrix_host_data(const std::vector<std::vector<index_type>>& adjacency_list) {
+    MatrixHostData host_data;
+    host_data.adj_matrix = build_adj_matrix(adjacency_list);
+    host_data.num_nodes = host_data.adj_matrix.size();
+    return host_data;
+}
 
-std::vector<std::vector<index_type>> read_graph_from_file(std::string path) {
+
+std::vector<std::vector<index_type>> read_adjacency_list(std::string path) {
     std::vector<std::vector<index_type>> adjacency_list;
     size_t num_nodes;
     std::ifstream file(path);

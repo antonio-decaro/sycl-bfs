@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     }
 
     // data definition
-    HostData data = build_host_data(read_graph_from_file(argv[1]));
+    CSRHostData data = build_csr_host_data(read_adjacency_list(argv[1]));
     std::cout << "[*] Graph loaded!" << std::endl;
     std::cout << "[*] Number of nodes: " << data.num_nodes << std::endl; 
     std::cout << "[*] Offset size: " << data.csr.offsets.size() << std::endl;

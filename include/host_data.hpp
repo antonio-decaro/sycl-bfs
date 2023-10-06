@@ -13,6 +13,11 @@ typedef struct {
     size_t num_nodes;
     CSR csr;
     std::vector<index_type> distances, parents;
-} HostData;
+} CSRHostData;
+
+typedef struct {
+    size_t num_nodes;
+    std::vector<std::vector<char>> adj_matrix;
+} MatrixHostData;
 
 #endif

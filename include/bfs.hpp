@@ -4,13 +4,24 @@
 
 class SimpleBFS {
 private:
-    HostData& data;
+    CSRHostData& data;
 
 public:
-    SimpleBFS(HostData& data) : 
+    SimpleBFS(CSRHostData& data) : 
         data(data) {}
 
     void run();
 
     std::vector<index_type> get_result() { return data.parents; }
+};
+
+class TileBFS {
+private:
+    CSRHostData& data;
+
+public:
+    TileBFS(CSRHostData& data) : 
+        data(data) {}
+    
+    void run();
 };

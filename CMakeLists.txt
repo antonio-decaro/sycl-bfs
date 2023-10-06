@@ -11,6 +11,7 @@ include_directories(include)
 set(SOURCES
     src/main.cpp
     src/bfs.cpp
+    src/tile_bfs.cpp
 )
 
 # set includes

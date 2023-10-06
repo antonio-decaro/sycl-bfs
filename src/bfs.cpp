@@ -123,6 +123,10 @@ void multi_events_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl
     std::cout << "[*] Max depth reached: " << level << std::endl;
 }
 
+void spmv_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl::event>& events) {
+
+}
+
 void SimpleBFS::run() {
 
     // SYCL queue definition
