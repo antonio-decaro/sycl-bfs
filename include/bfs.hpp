@@ -12,7 +12,7 @@ public:
 
     void run();
 
-    std::vector<index_type> get_result() { return data.parents; }
+    std::vector<nodeid_t> get_result() { return data.parents; }
 };
 
 class TileBFS {

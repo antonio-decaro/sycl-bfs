@@ -33,17 +33,16 @@ public:
         n_tiles = host_data.num_nodes / tile_size + (host_data.num_nodes % tile_size != 0);
         lenght = n_tiles * tile_size;
 
-        tiled_matrix.resize(lenght);
-        for (auto i = 0; i < lenght; i++) {
-            tiled_matrix[i].resize(n_tiles);
-        }
+        tiled_matrix = std::vector<std::vector<tile_t>>(lenght, std::vector<tile_t>(n_tiles, 0));
 
         for (int i = 0; i < lenght; i++) {
             for (int j = 0; j < n_tiles; j++) {
-                tiled_matrix[i][j] = i < host_data.num_nodes ? process_matrix_tile<COMPRESS_ROW>(host_data.adj_matrix, i, j, tile_size) : 0;
+                tiled_matrix[i][j] = i < host_data.num_nodes ? 
+                    process_matrix_tile<COMPRESS_ROW>(host_data.adj_matrix, i, j, tile_size) : 0;
             }
         }
 
+        // TODO: maybe is necessary to move (and not copy) data from the other vector to save space
         compressed_tiled_matrix.resize(lenght * n_tiles);
         for (int i = 0; i < lenght; i++) {
             for (int j = 0; j < n_tiles; j++) {
@@ -56,19 +55,19 @@ public:
     size_t tile_size;
     size_t n_tiles;
     size_t lenght;
-    std::vector<std::vector<char>> tiled_matrix;
-    std::vector<char> compressed_tiled_matrix;
+    std::vector<std::vector<tile_t>> tiled_matrix;
+    std::vector<tile_t> compressed_tiled_matrix;
 };
 
 class SYCL_TiledData {
 public:
     SYCL_TiledData(TileData& tile_data) : 
         tile_data(tile_data),
-        tiled_matrix(s::buffer<char, 2>{tile_data.compressed_tiled_matrix.data(), s::range<2>{tile_data.lenght, tile_data.n_tiles}})
+        tiled_matrix(s::buffer<adjidx_t, 2>{tile_data.compressed_tiled_matrix.data(), s::range<2>{tile_data.lenght, tile_data.n_tiles}})
     {}
 
     TileData& tile_data;
-    s::buffer<char, 2> tiled_matrix;
+    s::buffer<adjidx_t, 2> tiled_matrix;
 };
 
 

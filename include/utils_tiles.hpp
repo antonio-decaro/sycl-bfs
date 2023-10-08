@@ -10,9 +10,9 @@ enum CompressDirection {
 };
 
 template<CompressDirection direction>
-char process_matrix_tile(std::vector<std::vector<char>> adj_matrix, int i, int j, int tile_size) {
+tile_t process_matrix_tile(std::vector<std::vector<adjidx_t>> adj_matrix, int i, int j, int tile_size) {
 
-    char result = 0;
+    tile_t result = 0;
     if constexpr(direction == COMPRESS_ROW) {
         for (int k = 0; k < tile_size; k++) {
             if (j * tile_size + k < adj_matrix[i].size()) {
