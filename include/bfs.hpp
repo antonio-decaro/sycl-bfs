@@ -16,12 +16,12 @@ public:
 
 class MultipleSimpleBFS {
 public:
-    MultipleSimpleBFS(std::vector<CSRHostData&> data) : 
+    MultipleSimpleBFS(std::vector<CSRHostData>& data) : 
         data(data) {}
 
     void run();
 private:
-    std::vector<CSRHostData&> data;
+    std::vector<CSRHostData>& data;
 };
 
 class TileBFS {

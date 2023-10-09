@@ -7,33 +7,37 @@
 
 int main(int argc, char** argv) {
 
-    if (!check_args(argc, argv)) {
-        return 1;
-    }
+    bool print_result = false;
 
-    // data definition
-    CSRHostData data = build_csr_host_data(read_graph_from_file(argv[1]));
-    std::cout << "[*] Graph loaded!" << std::endl;
-    std::cout << "[*] Number of nodes: " << data.num_nodes << std::endl; 
-    std::cout << "[*] Offset size: " << data.csr.offsets.size() << std::endl;
-    std::cout << "[*] Edges size: " << data.csr.edges.size() << std::endl;
-
-    // init data
-    data.distances[0] = 0;
-
-    try {
-        // run BFS
-        SimpleBFS bfs(data);
-        bfs.run();
-
-        if (argc >= 3) {
-            std::ofstream out(argv[2]);
-            for (nodeid_t i = 0; i < data.parents.size(); i++) {
-                out << i << " Parent: " << data.parents[i] << " Distance: " << data.distances[i] << std::endl;
+    // read multiple graphs from different files
+    if (argc >= 3) {
+        std::vector<CSRHostData> graphs;
+        for (int i = 1; i < argc; i++) {
+            if (std::string(argv[i]) == "-p") {
+                print_result = true;
+                continue;
             }
-            out.close();
+            graphs.push_back(build_csr_host_data(read_graph_from_file(argv[i])));
         }
-    } catch (sycl::exception e) {
-        std::cout << e.what() << std::endl;
+        std::cout << "[*] Graphs loaded!" << std::endl;
+
+        // run BFS
+        try {
+            MultipleSimpleBFS bfs(graphs);
+            bfs.run();
+
+            if (print_result) {
+                for (int i = 0; i < graphs.size(); i++) {
+                    std::cout << "[!!!] Graph " << i << std::endl;
+                    for (nodeid_t j = 0; j < graphs[i].parents.size(); j++) {
+                        std::cout << j << " Parent: " << graphs[i].parents[j] << " Distance: " << graphs[i].distances[j] << std::endl;
+                    }
+                }
+
+            }
+        } catch (sycl::exception e) {
+            std::cout << e.what() << std::endl;
+        }
+        return 0;
     }
 }

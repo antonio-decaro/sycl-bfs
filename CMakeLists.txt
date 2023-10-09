@@ -10,7 +10,6 @@ include_directories(include)
 # set sources
 set(SOURCES
     src/main.cpp
-    src/bfs.cpp
     src/mul_bfs.cpp
 )
 

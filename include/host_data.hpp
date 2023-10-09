@@ -5,14 +5,15 @@
 #define CSR_GRAPH_HPP
 
 typedef struct {
-    std::vector<nodeid_t> offsets;
+    std::vector<size_t> offsets;
     std::vector<nodeid_t> edges;
 } CSR;
 
 typedef struct {
     size_t num_nodes;
     CSR csr;
-    std::vector<nodeid_t> distances, parents;
+    std::vector<nodeid_t> parents;
+    std::vector<distance_t> distances;
 } CSRHostData;
 
 typedef struct {
