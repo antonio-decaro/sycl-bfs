@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     }
 
     // data definition
-    HostData data = build_host_data(read_graph_from_file(argv[1]));
+    CSRHostData data = build_csr_host_data(read_graph_from_file(argv[1]));
     std::cout << "[*] Graph loaded!" << std::endl;
     std::cout << "[*] Number of nodes: " << data.num_nodes << std::endl; 
     std::cout << "[*] Offset size: " << data.csr.offsets.size() << std::endl;
@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 
         if (argc >= 3) {
             std::ofstream out(argv[2]);
-            for (index_type i = 0; i < data.parents.size(); i++) {
+            for (nodeid_t i = 0; i < data.parents.size(); i++) {
                 out << i << " Parent: " << data.parents[i] << " Distance: " << data.distances[i] << std::endl;
             }
             out.close();

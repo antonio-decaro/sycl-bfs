@@ -11,12 +11,31 @@
 
 namespace s = sycl;
 
-void write_back(SYCL_GraphData& sycl_data) {
-    sycl_data.distances.set_final_data(sycl_data.host_data.distances.data());
-    sycl_data.parents.set_final_data(sycl_data.host_data.parents.data());
-    sycl_data.distances.set_write_back(true);
-    sycl_data.parents.set_write_back(true);
-}
+class SYCL_GraphData {
+public:
+    SYCL_GraphData(CSRHostData& data) :
+        host_data(data),
+        num_nodes(data.num_nodes),
+        offsets(sycl::buffer<nodeid_t, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
+        edges(sycl::buffer<nodeid_t, 1>{data.csr.edges.data(), sycl::range{data.csr.edges.size()}}),
+        distances(sycl::buffer<nodeid_t, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
+        parents(sycl::buffer<nodeid_t, 1>{data.parents.data(), sycl::range{data.parents.size()}})
+    {
+        distances.set_write_back(false);
+        parents.set_write_back(false);
+    }
+
+    void write_back() {
+        distances.set_final_data(host_data.distances.data());
+        parents.set_final_data(host_data.parents.data());
+        distances.set_write_back(true);
+        parents.set_write_back(true);
+    }
+
+    size_t num_nodes;
+    CSRHostData& host_data;
+    sycl::buffer<nodeid_t, 1> offsets, edges, distances, parents;
+};
 
 void dummy_kernel(sycl::queue& queue, SYCL_GraphData& data) {
 
@@ -147,7 +166,7 @@ void SimpleBFS::run() {
         duration += (end - start);
     }
 
-    write_back(sycl_data); 
+    sycl_data.write_back();
 
     std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
     std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
