@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 #include <chrono>
-#include "sycl_data.hpp"
 #include "kernel_sizes.hpp"
 #include "bfs.hpp"
 
@@ -60,7 +59,7 @@ void dummy_kernel(sycl::queue& queue, SYCL_GraphData& data) {
     }).wait();
 }
 
-void frontier_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl::event>& events) {
+void multi_frontier_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl::event>& events) {
 
     int* frontier = s::malloc_device<int>(data.num_nodes, queue);
     int* frontier_size = s::malloc_shared<int>(1, queue);
@@ -156,7 +155,7 @@ void SimpleBFS::run() {
 
     auto start_glob = std::chrono::high_resolution_clock::now();
     // multi_events_BFS(queue, sycl_data, events);
-    frontier_BFS(queue, sycl_data, events);
+    multi_frontier_BFS(queue, sycl_data, events);
     auto end_glob = std::chrono::high_resolution_clock::now();
 
     long duration = 0;

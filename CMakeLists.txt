@@ -11,6 +11,7 @@ include_directories(include)
 set(SOURCES
     src/main.cpp
     src/bfs.cpp
+    src/mul_bfs.cpp
 )
 
 # set includes
@@ -18,7 +19,6 @@ set(INCLUDES
     include/arg_parse.hpp
     include/bfs.hpp
     include/host_data.hpp
-    include/sycl_data.hpp
     include/types.hpp
     include/utils.hpp
     include/kernel_sizes.hpp

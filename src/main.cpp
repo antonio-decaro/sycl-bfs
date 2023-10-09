@@ -1,6 +1,5 @@
 #include <sycl/sycl.hpp>
 #include "host_data.hpp"
-#include "sycl_data.hpp"
 #include "utils.hpp"
 #include "arg_parse.hpp"
 #include "kernel_sizes.hpp"

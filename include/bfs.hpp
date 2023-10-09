@@ -1,5 +1,4 @@
 #include <sycl/sycl.hpp>
-#include "sycl_data.hpp"
 #include "host_data.hpp"
 
 class SimpleBFS {
