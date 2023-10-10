@@ -17,7 +17,7 @@ public:
         num_nodes(data.num_nodes),
         offsets(sycl::buffer<size_t, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
         edges(sycl::buffer<nodeid_t, 1>{data.csr.edges.data(), sycl::range{data.csr.edges.size()}}),
-        distances(sycl::buffer<size_t, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
+        distances(sycl::buffer<distance_t, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
         parents(sycl::buffer<nodeid_t, 1>{data.parents.data(), sycl::range{data.parents.size()}})
     {
         distances.set_write_back(false);
@@ -34,7 +34,8 @@ public:
     size_t num_nodes;
     CSRHostData& host_data;
     sycl::buffer<nodeid_t, 1> parents, edges;
-    sycl::buffer<size_t, 1> distances, offsets;
+    sycl::buffer<size_t, 1> offsets;
+    sycl::buffer<distance_t, 1> distances;
 };
 
 void dummy_kernel(sycl::queue& queue, SYCL_GraphData& data) {

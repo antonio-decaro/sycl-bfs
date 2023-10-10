@@ -84,67 +84,75 @@ public:
 void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::event>& events) {
 
     s::range<1> global{WORK_GROUP_SIZE * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
-    s::range<1> local{WORK_GROUP_SIZE}; 
+    s::range<1> local{WORK_GROUP_SIZE};
+    s::range<1> num_groups {data.host_data.graphs_offsets.size() - 1};
 
     auto e = queue.submit([&](s::handler& cgh) {
         auto offsets_acc = data.offsets.get_access<s::access::mode::read>(cgh);
         auto edges_acc = data.edges.get_access<s::access::mode::read>(cgh);
-        auto distances_acc = data.distances.get_access<s::access::mode::read_write>(cgh);
+        auto distances_acc = data.distances.get_access<s::access::mode::discard_read_write>(cgh);
         auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(cgh);
         auto graphs_offsets_acc = data.graphs_offests.get_access<s::access::mode::read>(cgh);
         auto nodes_count_acc = data.nodes_count.get_access<s::access::mode::read>(cgh);
 
-        s::local_accessor<nodeid_t, 1> frontier(s::range<1>(WORK_GROUP_SIZE), cgh);
-        s::local_accessor<size_t, 1> f_size(s::range<1>(1), cgh);
-        s::local_accessor<size_t, 1> fold_size(s::range<1>(1), cgh);
+        s::stream os {4096, 128, cgh};
 
-        s::stream os {256, 80, cgh};
+        typedef int fsize_t;
+        cgh.parallel_for_work_group(num_groups, local, [=](s::group<1> grp) {
+            nodeid_t frontier[WORK_GROUP_SIZE];
+            fsize_t fsize_curr = 0;
+            fsize_t fsize_prev = 0;
+            auto n_nodes = nodes_count_acc[grp.get_group_id(0)];
+            auto offset = graphs_offsets_acc[grp.get_group_id(0)];
 
-        cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> idx) {
-            s::atomic_ref<size_t, s::memory_order::acq_rel, s::memory_scope::work_group> f_size_ar{f_size[0]};
-            s::atomic_ref<size_t, s::memory_order::relaxed, s::memory_scope::work_group> fold_size_ar{fold_size[0]};
+            grp.parallel_for_work_item([&](s::h_item<1> item) {
+                auto lid = item.get_local_id(0);
+                frontier[lid] = 0;
+                if (lid == 0) {
+                    distances_acc[offset] = 0;
+                    fsize_prev = 1;
+                } else if (lid < nodes_count_acc[grp.get_group_id(0)]) {
+                    distances_acc[offset + lid] = -1;
+                }
+            });
 
-            auto grp = idx.get_group();
-            auto grp_id = idx.get_group_linear_id();
-            auto offset = graphs_offsets_acc[grp_id];
-            auto num_nodes = nodes_count_acc[grp_id];
-            auto lid = idx.get_local_id(0);
+            while (fsize_prev > 0) {
+                grp.parallel_for_work_item([&](s::h_item<1> item) {
+                    s::atomic_ref<fsize_t, s::memory_order::acq_rel, s::memory_scope::work_group> fsize_curr_ar{fsize_curr};
+                    auto lid = item.get_local_id(0);
 
-            // init frontier mask
-            if (idx.get_local_linear_id() == 0) {
-                distances_acc[offset] = 0;
-                fold_size_ar.store(1);
-                f_size_ar.store(0);
-            }
-            frontier[lid] = 0;
-            s::group_barrier(grp);
-
-            while (fold_size_ar.load() > 0) { // TODO deadlock understand why
-                if (lid < fold_size_ar.load()) {
-                    nodeid_t node = frontier[lid];
-                    os << "[DEBUG] Node: " << node << "\n";
-                    os << "[DEBUG] " << offsets_acc[offset + node] << " " << offsets_acc[offset + node + 1] << "\n";
-                    for (int i = offsets_acc[offset + node]; i < offsets_acc[offset + node + 1]; i++) {
-                        int neighbor = offset + edges_acc[i];
-                        if (distances_acc[neighbor] == -1) {
-                            distances_acc[neighbor] = distances_acc[node] + 1;
-                            parents_acc[neighbor] = node;
-                            auto pos = f_size_ar.fetch_add(1);
-                            frontier[pos] = neighbor;
+                    if (lid < fsize_prev) {
+                        nodeid_t node = frontier[lid];
+                        for (int i = offsets_acc[offset + node]; i < offsets_acc[offset + node + 1]; i++) {
+                            nodeid_t neighbor = offset + edges_acc[i];
+                            if (distances_acc[neighbor] == -1) {
+                                auto dist = distances_acc[offset + node] + 1;
+                                distances_acc[neighbor] = dist >= 0 ? dist : 0;
+                                parents_acc[neighbor] = node;
+                                auto pos = fsize_curr_ar.fetch_add(1);
+                                os << "Pos: " << pos << " for " << neighbor << "\n";
+                                frontier[pos] = edges_acc[i];
+                                // os << "Visiting: " << neighbor << " from " << node << "\n";
+                            } else {
+                                // os << "Already visited: " << neighbor << " by " << parents_acc[neighbor] << "\n";
+                            }
                         }
-                    }
-                }
-                s::group_barrier(grp);
-                if (idx.get_local_id(0) == 0) {
-                    fold_size_ar.store(f_size_ar.load());
-                    f_size_ar.store(0);
-                }
-                s::group_barrier(grp);
+                    };
+                });
+
+                // os << "Distances: ";
+                // for (int i = 0; i < n_nodes; i++) {
+                //     os << parents_acc[i] << " ";
+                // }
+                // os << "\n";
+                fsize_prev = fsize_curr;
+                fsize_curr = 0;
+                os << "Fsize: " << fsize_prev << "\n";
             }
         });
     });
     events.push_back(e);
-    e.wait();
+    e.wait_and_throw();
 }
 
 void MultipleSimpleBFS::run() {
