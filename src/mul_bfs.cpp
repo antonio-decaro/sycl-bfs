@@ -23,7 +23,7 @@ public:
             for (int j = 0; j < d.csr.offsets.size(); j++) {
                 compressed_offsets.push_back(total_offset_size + d.csr.offsets[j]);
             }
-            compressed_edges.insert(compressed_edges.end(), std::make_move_iterator(d.csr.edges.begin()), std::make_move_iterator(d.csr.edges.end()));
+            compressed_edges.insert(compressed_edges.end(), d.csr.edges.begin(), d.csr.edges.end());
             
             total_nodes += d.num_nodes;
             nodes_count.push_back(d.num_nodes);
@@ -38,11 +38,13 @@ public:
     }
 
     void write_back() {
-        size_t off = 0;
-        for (size_t i = 0; i < data.size(); i++) {
-            data[i].distances = std::vector<distance_t>(compressed_distances.begin() + off, compressed_distances.end() + off);
-            data[i].parents = std::vector<nodeid_t>(compressed_parents.begin() + off, compressed_parents.end() + off);
-            off += nodes_count[i];
+        size_t k = 0;
+        for (auto& d : data) {
+            for (size_t i = 0; i < d.num_nodes; i++) {
+                d.distances[i] = compressed_distances[k];
+                d.parents[i] = compressed_parents[k];
+                k++;
+            }
         }
     }
 
@@ -66,7 +68,7 @@ public:
 
     void write_back() {
         auto dacc = distances.get_host_access();
-        auto pacc = distances.get_host_access();
+        auto pacc = parents.get_host_access();
         for (int i = 0; i < host_data.compressed_distances.size(); i++) {
             host_data.compressed_distances[i] = dacc[i];
             host_data.compressed_parents[i] = pacc[i];
@@ -95,59 +97,46 @@ void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::ev
         auto graphs_offsets_acc = data.graphs_offests.get_access<s::access::mode::read>(cgh);
         auto nodes_count_acc = data.nodes_count.get_access<s::access::mode::read>(cgh);
 
-        s::stream os {4096, 128, cgh};
+        s::stream os {8192, 128, cgh};
 
         typedef int fsize_t;
-        cgh.parallel_for_work_group(num_groups, local, [=](s::group<1> grp) {
-            nodeid_t frontier[WORK_GROUP_SIZE];
-            fsize_t fsize_curr = 0;
-            fsize_t fsize_prev = 0;
-            auto n_nodes = nodes_count_acc[grp.get_group_id(0)];
-            auto offset = graphs_offsets_acc[grp.get_group_id(0)];
+        s::local_accessor<fsize_t, 1> frontier{s::range<1>{WORK_GROUP_SIZE}, cgh};
+        s::local_accessor<size_t, 1> fsize_curr{s::range<1>{1}, cgh};
+        s::local_accessor<size_t, 1> fsize_prev{s::range<1>{1}, cgh};
 
-            grp.parallel_for_work_item([&](s::h_item<1> item) {
-                auto lid = item.get_local_id(0);
-                frontier[lid] = 0;
-                if (lid == 0) {
-                    distances_acc[offset] = 0;
-                    fsize_prev = 1;
-                } else if (lid < nodes_count_acc[grp.get_group_id(0)]) {
-                    distances_acc[offset + lid] = -1;
-                }
-            });
+        cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> item) {
+            s::atomic_ref<size_t, s::memory_order::acq_rel, s::memory_scope::work_group> fsize_curr_ar{fsize_curr[0]};
+            auto n_nodes = nodes_count_acc[item.get_group(0)];
+            auto offset = graphs_offsets_acc[item.get_group(0)];
+            auto lid = item.get_local_id(0);
 
-            while (fsize_prev > 0) {
-                grp.parallel_for_work_item([&](s::h_item<1> item) {
-                    s::atomic_ref<fsize_t, s::memory_order::acq_rel, s::memory_scope::work_group> fsize_curr_ar{fsize_curr};
-                    auto lid = item.get_local_id(0);
-
-                    if (lid < fsize_prev) {
-                        nodeid_t node = frontier[lid];
-                        for (int i = offsets_acc[offset + node]; i < offsets_acc[offset + node + 1]; i++) {
-                            nodeid_t neighbor = offset + edges_acc[i];
-                            if (distances_acc[neighbor] == -1) {
-                                auto dist = distances_acc[offset + node] + 1;
-                                distances_acc[neighbor] = dist >= 0 ? dist : 0;
-                                parents_acc[neighbor] = node;
-                                auto pos = fsize_curr_ar.fetch_add(1);
-                                os << "Pos: " << pos << " for " << neighbor << "\n";
-                                frontier[pos] = edges_acc[i];
-                                // os << "Visiting: " << neighbor << " from " << node << "\n";
-                            } else {
-                                // os << "Already visited: " << neighbor << " by " << parents_acc[neighbor] << "\n";
-                            }
+            if (lid == 0) {
+                os << "Offset: " << offset << " | First node: " << offsets_acc[offset] << "\n";
+                distances_acc[offset] = 0;
+                fsize_prev[0] = 1;
+            } else if (lid < nodes_count_acc[item.get_group(0)]) {
+                distances_acc[offset + lid] = -1;
+            }
+            item.barrier(s::access::fence_space::local_space);
+            while (fsize_prev[0] > 0) {
+                if (lid < fsize_prev[0]) {
+                    nodeid_t node = frontier[lid];
+                    for (int i = offsets_acc[offset + node]; i < offsets_acc[offset + node + 1]; i++) {
+                        nodeid_t neighbor = edges_acc[i];
+                        if (distances_acc[offset + neighbor] == -1) {
+                            distances_acc[offset + neighbor] = distances_acc[offset + node] + 1;
+                            parents_acc[offset + neighbor] = node;
+                            auto pos = fsize_curr_ar.fetch_add(1);
+                            frontier[pos] = neighbor;
                         }
-                    };
-                });
-
-                // os << "Distances: ";
-                // for (int i = 0; i < n_nodes; i++) {
-                //     os << parents_acc[i] << " ";
-                // }
-                // os << "\n";
-                fsize_prev = fsize_curr;
-                fsize_curr = 0;
-                os << "Fsize: " << fsize_prev << "\n";
+                    }
+                }
+                item.barrier(s::access::fence_space::local_space);
+                if (lid == 0) {
+                    fsize_prev[0] = fsize_curr[0];
+                    fsize_curr[0] = 0;
+                }
+                item.barrier(s::access::fence_space::local_space);
             }
         });
     });
@@ -167,7 +156,6 @@ void MultipleSimpleBFS::run() {
     std::vector<s::event> events;
 
     auto start_glob = std::chrono::high_resolution_clock::now();
-    // multi_events_BFS(queue, sycl_data, events);
     multi_frontier_BFS(queue, sycl_data, events);
     auto end_glob = std::chrono::high_resolution_clock::now();
 

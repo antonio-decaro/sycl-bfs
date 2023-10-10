@@ -2,6 +2,6 @@
 #define KERNEL_SIZES_HPP
 
 #define GLOBAL_SIZE 1024
-#define WORK_GROUP_SIZE 16
+#define WORK_GROUP_SIZE 256
 
 #endif
