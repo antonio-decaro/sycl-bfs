@@ -35,5 +35,9 @@ set (SYCL_TARGET "intel_gpu_acm_g10" CACHE STRING "Target for SYCL")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=${SYCL_TARGET}")
 
 # add target
+<<<<<<< HEAD
 add_executable(simple_bfs ${SIMPLE_BFS_SRC} ${INCLUDES})
 add_executable(multi_bfs ${MULTI_SIMPLE_BFS_SRC} ${INCLUDES})
+=======
+add_executable(sycl_bfs ${SOURCES} ${INCLUDES})
+>>>>>>> a61382a152f4414ac4e59d03fb86e23a18c6d2ac

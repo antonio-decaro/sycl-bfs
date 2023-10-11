@@ -15,23 +15,14 @@ int main(int argc, char** argv) {
     CSRHostData data = build_csr_host_data(read_graph_from_file(argv[1]));
     std::cout << "[*] Graph loaded!" << std::endl;
     std::cout << "[*] Number of nodes: " << data.num_nodes << std::endl; 
-    std::cout << "[*] Offset size: " << data.csr.offsets.size() << std::endl;
-    std::cout << "[*] Edges size: " << data.csr.edges.size() << std::endl;
-
-    // init data
-    data.distances[0] = 0;
 
     try {
         // run BFS
         SimpleBFS bfs(data);
         bfs.run();
 
-        if (argc >= 3) {
-            std::ofstream out(argv[2]);
-            for (nodeid_t i = 0; i < data.parents.size(); i++) {
-                out << i << " Parent: " << data.parents[i] << " Distance: " << data.distances[i] << std::endl;
-            }
-            out.close();
+        for (nodeid_t i = 0; i < data.parents.size(); i++) {
+            std::cout << i << " Parent: " << data.parents[i] << " Distance: " << data.distances[i] << std::endl;
         }
     } catch (sycl::exception e) {
         std::cout << e.what() << std::endl;
