@@ -65,13 +65,6 @@ public:
 
         compressed_distances = std::vector<distance_t>(total_nodes, -1);
         compressed_parents = std::vector<nodeid_t>(total_nodes, -1);
-
-        // print compressed offsets
-        std::cout << "Compressed offsets: ";
-        for (auto& o : compressed_offsets) {
-            std::cout << o << " ";
-        }
-        std::cout << std::endl;
     }
 
     void write_back() {
