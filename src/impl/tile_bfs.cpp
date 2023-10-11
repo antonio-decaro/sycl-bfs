@@ -12,7 +12,6 @@
 #include <vector>
 #include <string>
 #include <chrono>
-#include "sycl_data.hpp"
 #include "kernel_sizes.hpp"
 #include "bfs.hpp"
 #include "utils_tiles.hpp"
