@@ -15,9 +15,9 @@ public:
     SYCL_GraphData(CSRHostData& data) :
         host_data(data),
         num_nodes(data.num_nodes),
-        offsets(sycl::buffer<nodeid_t, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
+        edges_offsets(sycl::buffer<size_t, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
         edges(sycl::buffer<nodeid_t, 1>{data.csr.edges.data(), sycl::range{data.csr.edges.size()}}),
-        distances(sycl::buffer<nodeid_t, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
+        distances(sycl::buffer<distance_t, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
         parents(sycl::buffer<nodeid_t, 1>{data.parents.data(), sycl::range{data.parents.size()}})
     {
         distances.set_write_back(false);
@@ -33,14 +33,16 @@ public:
 
     size_t num_nodes;
     CSRHostData& host_data;
-    sycl::buffer<nodeid_t, 1> offsets, edges, distances, parents;
+    sycl::buffer<nodeid_t, 1> parents, edges;
+    sycl::buffer<size_t, 1> edges_offsets;
+    sycl::buffer<distance_t, 1> distances;
 };
 
 void dummy_kernel(sycl::queue& queue, SYCL_GraphData& data) {
 
     // dummy kernel to init data
     queue.submit([&](sycl::handler& h) {
-        auto offsets_acc = data.offsets.get_access<s::access::mode::read>(h);
+        auto offsets_acc = data.edges_offsets.get_access<s::access::mode::read>(h);
         auto edges_acc = data.edges.get_access<s::access::mode::read>(h);
         auto distances_acc = data.distances.get_access<s::access::mode::discard_write>(h);
         auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(h);
@@ -71,7 +73,7 @@ void multi_frontier_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sy
     int level = 0;
     while (*old_frontier_size) {
         auto e = queue.submit([&](s::handler& h) {
-            auto offsets_acc = data.offsets.get_access<s::access::mode::read>(h);
+            auto offsets_acc = data.edges_offsets.get_access<s::access::mode::read>(h);
             auto edges_acc = data.edges.get_access<s::access::mode::read>(h);
             auto distances_acc = data.distances.get_access<s::access::mode::read_write>(h);
             auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(h);
@@ -114,7 +116,7 @@ void multi_events_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl
     do {
         *changed = false;
         auto e = queue.submit([&](sycl::handler& h) {
-            auto offsets_acc = data.offsets.get_access<s::access::mode::read>(h);
+            auto offsets_acc = data.edges_offsets.get_access<s::access::mode::read>(h);
             auto edges_acc = data.edges.get_access<s::access::mode::read>(h);
             auto distances_acc = data.distances.get_access<s::access::mode::read_write>(h);
             auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(h);
