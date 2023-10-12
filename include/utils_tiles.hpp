@@ -21,8 +21,8 @@ tile_t process_matrix_tile(std::vector<std::vector<adjidx_t>> adj_matrix, int i,
         }
     } else {
         for (int k = 0; k < tile_size; k++) {
-            if (j * tile_size + k < adj_matrix.size()) {
-                result |= adj_matrix[j * tile_size + k][i] << (tile_size - 1 - k);
+            if (i * tile_size + k < adj_matrix.size()) {
+                result |= adj_matrix[i * tile_size + k][j] << (tile_size - 1 - k);
             }
         }
     }

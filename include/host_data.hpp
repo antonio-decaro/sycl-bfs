@@ -5,7 +5,7 @@
 #define CSR_GRAPH_HPP
 
 typedef struct {
-    std::vector<nodeid_t> offsets;
+    std::vector<size_t> offsets;
     std::vector<nodeid_t> edges;
 } CSR;
 

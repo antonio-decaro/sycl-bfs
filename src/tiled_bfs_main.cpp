@@ -20,7 +20,6 @@ int main(int argc, char** argv) {
         // run BFS
         TileBFS bfs(data);
         bfs.run();
-
     
     } catch (sycl::exception e) {
         std::cout << e.what() << std::endl;
