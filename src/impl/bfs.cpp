@@ -42,10 +42,10 @@ void dummy_kernel(sycl::queue& queue, SYCL_GraphData& data) {
 
     // dummy kernel to init data
     queue.submit([&](sycl::handler& h) {
-        auto offsets_acc = data.edges_offsets.get_access<s::access::mode::read>(h);
-        auto edges_acc = data.edges.get_access<s::access::mode::read>(h);
-        auto distances_acc = data.distances.get_access<s::access::mode::discard_write>(h);
-        auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(h);
+        s::accessor offsets_acc(data.edges_offsets, h, s::read_only);
+        s::accessor edges_acc(data.edges, h, s::read_only);
+        s::accessor distances_acc(data.distances, h, s::read_write, s::no_init);
+        s::accessor parents_acc(data.parents, h, s::write_only, s::no_init);
 
         h.parallel_for(s::range<1>{data.num_nodes}, [=](s::id<1> idx) {
             auto a = offsets_acc[idx[0]];
@@ -73,10 +73,10 @@ void multi_frontier_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sy
     int level = 0;
     while (*old_frontier_size) {
         auto e = queue.submit([&](s::handler& h) {
-            auto offsets_acc = data.edges_offsets.get_access<s::access::mode::read>(h);
-            auto edges_acc = data.edges.get_access<s::access::mode::read>(h);
-            auto distances_acc = data.distances.get_access<s::access::mode::read_write>(h);
-            auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(h);
+            s::accessor offsets_acc(data.edges_offsets, h, s::read_only);
+            s::accessor edges_acc(data.edges, h, s::read_only);
+            s::accessor distances_acc(data.distances, h, s::read_write);
+            s::accessor parents_acc(data.parents, h, s::write_only, s::no_init);
 
             size_t size = *old_frontier_size;
             h.parallel_for(s::range<1>{size}, [=](s::id<1> idx) {
@@ -116,10 +116,10 @@ void multi_events_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl
     do {
         *changed = false;
         auto e = queue.submit([&](sycl::handler& h) {
-            auto offsets_acc = data.edges_offsets.get_access<s::access::mode::read>(h);
-            auto edges_acc = data.edges.get_access<s::access::mode::read>(h);
-            auto distances_acc = data.distances.get_access<s::access::mode::read_write>(h);
-            auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(h);
+            s::accessor offsets_acc(data.edges_offsets, h, s::read_only);
+            s::accessor edges_acc(data.edges, h, s::read_only);
+            s::accessor distances_acc(data.distances, h, s::read_write);
+            s::accessor parents_acc(data.parents, h, s::write_only, s::no_init);
 
             h.parallel_for(s::range<1>{data.num_nodes}, [=, num_nodes=data.num_nodes](s::id<1> idx) {
                 int node = idx[0];

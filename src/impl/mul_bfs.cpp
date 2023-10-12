@@ -193,13 +193,13 @@ void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::ev
     s::range<1> local{WORK_GROUP_SIZE};
 
     auto e = queue.submit([&](s::handler& cgh) {
-        auto offsets_acc = data.edges_offsets.get_access<s::access::mode::read>(cgh);
-        auto edges_acc = data.edges.get_access<s::access::mode::read>(cgh);
-        auto distances_acc = data.distances.get_access<s::access::mode::discard_read_write>(cgh);
-        auto parents_acc = data.parents.get_access<s::access::mode::discard_write>(cgh);
-        auto graphs_offsets_acc = data.graphs_offests.get_access<s::access::mode::read>(cgh);
-        auto nodes_offsets_acc = data.nodes_offsets.get_access<s::access::mode::read>(cgh);
-        auto nodes_count_acc = data.nodes_count.get_access<s::access::mode::read>(cgh);
+        s::accessor offsets_acc{data.edges_offsets, cgh, s::read_only};
+        s::accessor edges_acc{data.edges, cgh, s::read_only};
+        s::accessor distances_acc{data.distances, cgh, s::read_write, s::no_init};
+        s::accessor parents_acc{data.parents, cgh, s::write_only, s::no_init};
+        s::accessor graphs_offsets_acc{data.graphs_offests, cgh, s::read_only};
+        s::accessor nodes_offsets_acc{data.nodes_offsets, cgh, s::read_only};
+        s::accessor nodes_count_acc{data.nodes_count, cgh, s::read_only};
 
         s::stream os {8192, 128, cgh};
 
