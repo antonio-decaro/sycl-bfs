@@ -7,115 +7,12 @@
 #include <array>
 #include "kernel_sizes.hpp"
 #include "host_data.hpp"
+#include "sycl_data.hpp"
 #include "types.hpp"    
 
 namespace s = sycl;
 
-class SYCL_VectorizedGraphData {
-public:
-    SYCL_VectorizedGraphData(std::vector<CSRHostData>& data) : data(data) {
-
-        for (auto& d : data) {
-            offsets.push_back(s::buffer<size_t, 1>{d.csr.offsets.data(), s::range{d.csr.offsets.size()}});
-            edges.push_back(s::buffer<nodeid_t, 1>{d.csr.edges.data(), s::range{d.csr.edges.size()}});
-            parents.push_back(s::buffer<nodeid_t, 1>{d.parents.data(), s::range{d.parents.size()}});
-            distances.push_back(s::buffer<distance_t, 1>{d.distances.data(), s::range{d.distances.size()}});
-        }
-    }
-
-    void write_back() {
-        for (int i = 0; i < data.size(); i++) {
-            auto& d = data[i];
-            parents[i].set_final_data(d.parents.data());
-            parents[i].set_write_back(true);
-            distances[i].set_final_data(d.distances.data());
-            distances[i].set_write_back(true);
-        }
-    }
-
-    std::vector<CSRHostData>& data;
-    std::vector<s::buffer<size_t, 1>> offsets;
-    std::vector<s::buffer<nodeid_t, 1>> edges;
-    std::vector<s::buffer<nodeid_t, 1>> parents;
-    std::vector<s::buffer<distance_t, 1>> distances;
-};
-
-class CompressedHostData {
-public:
-    CompressedHostData(std::vector<CSRHostData>& data) : data(data) {
-        int total_nodes = 0;
-        for (int i = 0; i < data.size(); i++) {
-            if (i != 0) {
-                data[i].csr.offsets.erase(data[i].csr.offsets.begin());
-            }
-
-            for (int j = 0; j < data[i].csr.offsets.size(); j++) {
-                compressed_offsets.push_back(total_offset_size + data[i].csr.offsets[j]);
-            }
-            compressed_edges.insert(compressed_edges.end(), data[i].csr.edges.begin(), data[i].csr.edges.end());
-            
-            nodes_count.push_back(data[i].num_nodes);
-            nodes_offsets.push_back(total_nodes);
-            graphs_offsets.push_back(total_offset_size);
-            
-            total_offset_size += data[i].csr.offsets.back();
-            total_nodes += data[i].num_nodes;
-        }
-        graphs_offsets.push_back(total_offset_size);
-        nodes_offsets.push_back(total_nodes);
-
-        compressed_distances = std::vector<distance_t>(total_nodes, -1);
-        compressed_parents = std::vector<nodeid_t>(total_nodes, -1);
-    }
-
-    void write_back() {
-        size_t k = 0;
-        for (auto& d : data) {
-            for (size_t i = 0; i < d.num_nodes; i++) {
-                d.distances[i] = compressed_distances[k];
-                d.parents[i] = compressed_parents[k];
-                k++;
-            }
-        }
-    }
-
-    std::vector<CSRHostData>& data;
-    size_t total_offset_size = 0;
-    std::vector<size_t> compressed_offsets, nodes_count, graphs_offsets, nodes_offsets;
-    std::vector<distance_t> compressed_distances;
-    std::vector<nodeid_t> compressed_edges, compressed_parents;
-};
-
-class SYCL_GraphData {
-public:
-    SYCL_GraphData(CompressedHostData& data) :
-        host_data(data),
-        nodes_offsets(s::buffer<size_t, 1>(data.nodes_offsets.data(), s::range{data.nodes_offsets.size()})),
-        graphs_offests(s::buffer<size_t, 1>(data.graphs_offsets.data(), s::range{data.graphs_offsets.size()})),
-        nodes_count(s::buffer<size_t, 1>(data.nodes_count.data(), s::range{data.nodes_count.size()})),
-        edges_offsets(s::buffer<size_t, 1>{data.compressed_offsets.data(), s::range{data.compressed_offsets.size()}}),
-        edges(s::buffer<nodeid_t, 1>{data.compressed_edges.data(), s::range{data.compressed_edges.size()}}),
-        distances(s::buffer<distance_t, 1>{data.compressed_distances.data(), s::range{data.compressed_distances.size()}}),
-        parents(s::buffer<nodeid_t, 1>{data.compressed_parents.data(), s::range{data.compressed_parents.size()}}) {}
-
-    void write_back() {
-        auto dacc = distances.get_host_access();
-        auto pacc = parents.get_host_access();
-        for (int i = 0; i < host_data.compressed_distances.size(); i++) {
-            host_data.compressed_distances[i] = dacc[i];
-            host_data.compressed_parents[i] = pacc[i];
-        }
-        
-        host_data.write_back();
-    }
-
-    CompressedHostData& host_data;
-    s::buffer<nodeid_t, 1> edges, parents;
-    s::buffer<distance_t, 1> distances;
-    s::buffer<size_t, 1> graphs_offests, nodes_offsets, nodes_count, edges_offsets;
-};
-
-void multi_frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s::event>& events) {
+void frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s::event>& events) {
 
     s::range<1> global{DEFAULT_WORK_GROUP_SIZE * (data.data.size())}; // each workgroup will process a graph
     s::range<1> local{DEFAULT_WORK_GROUP_SIZE};
@@ -135,8 +32,6 @@ void multi_frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::ve
             distances_acc[i] = data.distances[i].get_access<s::access::mode::read_write>(cgh);
             n_nodes[i] = data.data[i].num_nodes;
         }
-
-        s::stream os {8192, 128, cgh};
 
         typedef int fsize_t;
         s::local_accessor<fsize_t, 1> frontier{s::range<1>{DEFAULT_WORK_GROUP_SIZE}, cgh};
