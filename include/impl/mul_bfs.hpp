@@ -117,8 +117,8 @@ public:
 
 void multi_frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s::event>& events) {
 
-    s::range<1> global{WORK_GROUP_SIZE * (data.data.size())}; // each workgroup will process a graph
-    s::range<1> local{WORK_GROUP_SIZE};
+    s::range<1> global{DEFAULT_WORK_GROUP_SIZE * (data.data.size())}; // each workgroup will process a graph
+    s::range<1> local{DEFAULT_WORK_GROUP_SIZE};
 
     auto e = queue.submit([&](s::handler& cgh) {
         constexpr size_t ACC_SIZE = 8;
@@ -139,7 +139,7 @@ void multi_frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::ve
         s::stream os {8192, 128, cgh};
 
         typedef int fsize_t;
-        s::local_accessor<fsize_t, 1> frontier{s::range<1>{WORK_GROUP_SIZE}, cgh};
+        s::local_accessor<fsize_t, 1> frontier{s::range<1>{DEFAULT_WORK_GROUP_SIZE}, cgh};
         s::local_accessor<size_t, 1> fsize_curr{s::range<1>{1}, cgh};
         s::local_accessor<size_t, 1> fsize_prev{s::range<1>{1}, cgh};
 
@@ -189,10 +189,10 @@ void multi_frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::ve
 }
 
 template<size_t sg_size>
-void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::event>& events) {
+void frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::event>& events, const size_t wg_size) {
 
-    s::range<1> global{WORK_GROUP_SIZE * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
-    s::range<1> local{WORK_GROUP_SIZE};
+    s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
+    s::range<1> local{wg_size};
 
     auto e = queue.submit([&](s::handler& cgh) {
         s::accessor offsets_acc{data.edges_offsets, cgh, s::read_only};
@@ -206,7 +206,7 @@ void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::ev
         s::stream os {8192, 128, cgh};
 
         typedef int fsize_t;
-        s::local_accessor<fsize_t, 1> frontier{s::range<1>{WORK_GROUP_SIZE}, cgh};
+        s::local_accessor<fsize_t, 1> frontier{s::range<1>{wg_size}, cgh};
         s::local_accessor<size_t, 1> fsize_curr{s::range<1>{1}, cgh};
         s::local_accessor<size_t, 1> fsize_prev{s::range<1>{1}, cgh};
 
@@ -216,17 +216,19 @@ void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::ev
             auto loc_id = item.get_local_id(0);
             auto edge_offset = graphs_offsets_acc[grp_id];
             auto node_offset = nodes_offsets_acc[grp_id];
+            auto node_count = nodes_count_acc[grp_id];
+            auto local_size = item.get_local_range(0);
 
             // initi frontier
             frontier[loc_id] = 0;
 
-            // init the first element of the frontier and the distance vector
-            if (loc_id == 0) {
-                distances_acc[node_offset] = 0;
-                fsize_prev[0] = 1;
-            } else if (loc_id < nodes_count_acc[grp_id]) {
-                distances_acc[node_offset + loc_id] = -1;
+            // init data
+            for (int i = loc_id; i < node_count; i += local_size) {
+                parents_acc[node_offset + i] = -1;
+                distances_acc[node_offset + i] = -1;
             }
+            distances_acc[node_offset] = 0;
+            fsize_prev[0] = 1;
             
             item.barrier(s::access::fence_space::local_space);
             while (fsize_prev[0] > 0) {
@@ -260,8 +262,8 @@ public:
     MultipleSimpleBFS(std::vector<CSRHostData>& data) : 
         data(data) {}
 
-    template<size_t sg_size>
-    void run() {
+    template<size_t sg_size, bool init = false>
+    void run(const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) {
             // s queue definition
         s::queue queue (s::gpu_selector_v, 
                         s::property_list{s::property::queue::enable_profiling{}});
@@ -273,7 +275,7 @@ public:
         std::vector<s::event> events;
 
         auto start_glob = std::chrono::high_resolution_clock::now();
-        multi_frontier_BFS<sg_size>(queue, sycl_data, events);
+        frontier_BFS<sg_size>(queue, sycl_data, events, wg_size);
         auto end_glob = std::chrono::high_resolution_clock::now();
 
         long duration = 0;
@@ -284,9 +286,12 @@ public:
         }
 
         sycl_data.write_back();
-
-        std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
-        std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
+        
+        if (!init) {
+            std::cout << "Sub-grup size: " << sg_size << std::endl;
+            std::cout << "- Kernels duration: " << duration / 1000 << " us" << std::endl;
+            std::cout << "- Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
+        }
     }
 
 private:
