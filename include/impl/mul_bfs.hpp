@@ -84,7 +84,7 @@ void frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s
 }
 
 template<size_t sg_size>
-void frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::event>& events, const size_t wg_size) {
+void frontier_BFS(s::queue& queue, SYCL_CompressedGraphData& data, std::vector<s::event>& events, const size_t wg_size) {
 
     s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
     s::range<1> local{wg_size};
@@ -164,7 +164,7 @@ public:
                         s::property_list{s::property::queue::enable_profiling{}});
 
         CompressedHostData compressed_data(data);
-        SYCL_GraphData sycl_data(compressed_data);
+        SYCL_CompressedGraphData sycl_data(compressed_data);
         SYCL_VectorizedGraphData sycl_vectorized_data(data);
 
         std::vector<s::event> events;

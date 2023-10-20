@@ -36,9 +36,9 @@ public:
     std::vector<sycl::buffer<distance_t, 1>> distances;
 };
 
-class SYCL_GraphData {
+class SYCL_CompressedGraphData {
 public:
-    SYCL_GraphData(CompressedHostData& data) :
+    SYCL_CompressedGraphData(CompressedHostData& data) :
         host_data(data),
         nodes_offsets(sycl::buffer<size_t, 1>(data.nodes_offsets.data(), sycl::range{data.nodes_offsets.size()})),
         graphs_offests(sycl::buffer<size_t, 1>(data.graphs_offsets.data(), sycl::range{data.graphs_offsets.size()})),
