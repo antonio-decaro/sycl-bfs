@@ -4,9 +4,8 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include "host_data.hpp"
 #include "kernel_sizes.hpp"
-#include "bfs.hpp"
-
 
 namespace s = sycl;
 
@@ -61,7 +60,8 @@ void dummy_kernel(sycl::queue& queue, SYCL_GraphData& data) {
     }).wait();
 }
 
-void multi_frontier_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl::event>& events) {
+template<size_t sg_size>
+void frontier_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl::event>& events) {
 
     int* frontier = s::malloc_device<int>(data.num_nodes, queue);
     int* frontier_size = s::malloc_shared<int>(1, queue);
@@ -72,7 +72,7 @@ void multi_frontier_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sy
 
     int level = 0;
     while (*old_frontier_size) {
-        auto e = queue.submit([&](s::handler& h) {
+        auto e = queue.submit([&](s::handler& h) [[intel::reqd_sub_group_size(sg_size)]] {
             s::accessor offsets_acc(data.edges_offsets, h, s::read_only);
             s::accessor edges_acc(data.edges, h, s::read_only);
             s::accessor distances_acc(data.distances, h, s::read_write);
@@ -143,32 +143,40 @@ void multi_events_BFS(sycl::queue& queue, SYCL_GraphData& data, std::vector<sycl
     std::cout << "[*] Max depth reached: " << level << std::endl;
 }
 
-void SimpleBFS::run() {
+class SimpleBFS {
+private:
+    CSRHostData& data;
 
-    // SYCL queue definition
-    sycl::queue queue (sycl::gpu_selector_v, 
-                       sycl::property_list{sycl::property::queue::enable_profiling{}});
+public:
+    SimpleBFS(CSRHostData& data) : 
+        data(data) {}
 
-    SYCL_GraphData sycl_data(data);
+    void run() {
+        // SYCL queue definition
+      sycl::queue queue (sycl::gpu_selector_v, 
+                        sycl::property_list{sycl::property::queue::enable_profiling{}});
 
-    std::vector<sycl::event> events;
+      SYCL_GraphData sycl_data(data);
 
-    dummy_kernel(queue, sycl_data);
+      std::vector<sycl::event> events;
 
-    auto start_glob = std::chrono::high_resolution_clock::now();
-    // multi_events_BFS(queue, sycl_data, events);
-    multi_frontier_BFS(queue, sycl_data, events);
-    auto end_glob = std::chrono::high_resolution_clock::now();
+      // dummy_kernel(queue, sycl_data);
 
-    long duration = 0;
-    for (sycl::event& e : events) {
-        auto start = e.get_profiling_info<sycl::info::event_profiling::command_start>();
-        auto end = e.get_profiling_info<sycl::info::event_profiling::command_end>();
-        duration += (end - start);
+      auto start_glob = std::chrono::high_resolution_clock::now();
+      // multi_events_BFS(queue, sycl_data, events);
+      frontier_BFS<32>(queue, sycl_data, events);
+      auto end_glob = std::chrono::high_resolution_clock::now();
+
+      long duration = 0;
+      for (sycl::event& e : events) {
+          auto start = e.get_profiling_info<sycl::info::event_profiling::command_start>();
+          auto end = e.get_profiling_info<sycl::info::event_profiling::command_end>();
+          duration += (end - start);
+      }
+
+      sycl_data.write_back();
+
+      std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
+      std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
     }
-
-    sycl_data.write_back();
-
-    std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
-    std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
-}
+};

@@ -3,7 +3,7 @@
 #include "utils.hpp"
 #include "arg_parse.hpp"
 #include "kernel_sizes.hpp"
-#include "bfs.hpp"
+#include "impl/mul_bfs.hpp"
 
 int main(int argc, char** argv) {
 
@@ -24,7 +24,9 @@ int main(int argc, char** argv) {
         // run BFS
         try {
             MultipleSimpleBFS bfs(graphs);
-            bfs.run();
+            bfs.run<8>();
+            bfs.run<16>();
+            bfs.run<32>();
 
             if (print_result) {
                 for (int i = 0; i < graphs.size(); i++) {

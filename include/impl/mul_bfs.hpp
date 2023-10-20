@@ -6,7 +6,8 @@
 #include <chrono>
 #include <array>
 #include "kernel_sizes.hpp"
-#include "bfs.hpp"
+#include "host_data.hpp"
+#include "types.hpp"    
 
 namespace s = sycl;
 
@@ -187,6 +188,7 @@ void multi_frontier_BFS(s::queue& queue, SYCL_VectorizedGraphData& data, std::ve
     e.wait_and_throw();
 }
 
+template<size_t sg_size>
 void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::event>& events) {
 
     s::range<1> global{WORK_GROUP_SIZE * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
@@ -208,7 +210,7 @@ void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::ev
         s::local_accessor<size_t, 1> fsize_curr{s::range<1>{1}, cgh};
         s::local_accessor<size_t, 1> fsize_prev{s::range<1>{1}, cgh};
 
-        cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> item) {
+        cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> item) [[intel::reqd_sub_group_size(sg_size)]] {
             s::atomic_ref<size_t, s::memory_order::acq_rel, s::memory_scope::work_group> fsize_curr_ar{fsize_curr[0]};
             auto grp_id = item.get_group_linear_id();
             auto loc_id = item.get_local_id(0);
@@ -253,31 +255,40 @@ void multi_frontier_BFS(s::queue& queue, SYCL_GraphData& data, std::vector<s::ev
     e.wait_and_throw();
 }
 
-void MultipleSimpleBFS::run() {
+class MultipleSimpleBFS {
+public:
+    MultipleSimpleBFS(std::vector<CSRHostData>& data) : 
+        data(data) {}
 
-    // s queue definition
-    s::queue queue (s::gpu_selector_v, 
-                       s::property_list{s::property::queue::enable_profiling{}});
+    template<size_t sg_size>
+    void run() {
+            // s queue definition
+        s::queue queue (s::gpu_selector_v, 
+                        s::property_list{s::property::queue::enable_profiling{}});
 
-    CompressedHostData compressed_data(data);
-    SYCL_GraphData sycl_data(compressed_data);
-    SYCL_VectorizedGraphData sycl_vectorized_data(data);
+        CompressedHostData compressed_data(data);
+        SYCL_GraphData sycl_data(compressed_data);
+        SYCL_VectorizedGraphData sycl_vectorized_data(data);
 
-    std::vector<s::event> events;
+        std::vector<s::event> events;
 
-    auto start_glob = std::chrono::high_resolution_clock::now();
-    multi_frontier_BFS(queue, sycl_data, events);
-    auto end_glob = std::chrono::high_resolution_clock::now();
+        auto start_glob = std::chrono::high_resolution_clock::now();
+        multi_frontier_BFS<sg_size>(queue, sycl_data, events);
+        auto end_glob = std::chrono::high_resolution_clock::now();
 
-    long duration = 0;
-    for (s::event& e : events) {
-        auto start = e.get_profiling_info<s::info::event_profiling::command_start>();
-        auto end = e.get_profiling_info<s::info::event_profiling::command_end>();
-        duration += (end - start);
+        long duration = 0;
+        for (s::event& e : events) {
+            auto start = e.get_profiling_info<s::info::event_profiling::command_start>();
+            auto end = e.get_profiling_info<s::info::event_profiling::command_end>();
+            duration += (end - start);
+        }
+
+        sycl_data.write_back();
+
+        std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
+        std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
     }
 
-    sycl_data.write_back();
-
-    std::cout << "[*] Kernels duration: " << duration / 1000 << " us" << std::endl;
-    std::cout << "[*] Total duration: " << std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count() << " us" << std::endl;
-}
+private:
+    std::vector<CSRHostData>& data;
+};

@@ -3,7 +3,7 @@
 #include "utils.hpp"
 #include "arg_parse.hpp"
 #include "kernel_sizes.hpp"
-#include "bfs.hpp"
+#include "impl/simpl_bfs.hpp"
 
 int main(int argc, char** argv) {
 
