@@ -6,38 +6,11 @@
 #include <chrono>
 #include "host_data.hpp"
 #include "kernel_sizes.hpp"
+#include "sycl_data.hpp"
 
 namespace s = sycl;
 
-class SYCL_CompressedGraphData {
-public:
-    SYCL_CompressedGraphData(CSRHostData& data) :
-        host_data(data),
-        num_nodes(data.num_nodes),
-        edges_offsets(sycl::buffer<size_t, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
-        edges(sycl::buffer<nodeid_t, 1>{data.csr.edges.data(), sycl::range{data.csr.edges.size()}}),
-        distances(sycl::buffer<distance_t, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
-        parents(sycl::buffer<nodeid_t, 1>{data.parents.data(), sycl::range{data.parents.size()}})
-    {
-        distances.set_write_back(false);
-        parents.set_write_back(false);
-    }
-
-    void write_back() {
-        distances.set_final_data(host_data.distances.data());
-        parents.set_final_data(host_data.parents.data());
-        distances.set_write_back(true);
-        parents.set_write_back(true);
-    }
-
-    size_t num_nodes;
-    CSRHostData& host_data;
-    sycl::buffer<nodeid_t, 1> parents, edges;
-    sycl::buffer<size_t, 1> edges_offsets;
-    sycl::buffer<distance_t, 1> distances;
-};
-
-void dummy_kernel(sycl::queue& queue, SYCL_CompressedGraphData& data) {
+void dummy_kernel(sycl::queue& queue, SYCL_SimpleGraphData& data) {
 
     // dummy kernel to init data
     queue.submit([&](sycl::handler& h) {
@@ -61,7 +34,7 @@ void dummy_kernel(sycl::queue& queue, SYCL_CompressedGraphData& data) {
 }
 
 template<size_t sg_size>
-void frontier_BFS(sycl::queue& queue, SYCL_CompressedGraphData& data, std::vector<sycl::event>& events) {
+void frontier_BFS(sycl::queue& queue, SYCL_SimpleGraphData& data, std::vector<sycl::event>& events) {
 
     int* frontier = s::malloc_device<int>(data.num_nodes, queue);
     int* frontier_size = s::malloc_shared<int>(1, queue);
@@ -107,7 +80,7 @@ void frontier_BFS(sycl::queue& queue, SYCL_CompressedGraphData& data, std::vecto
     s::free(old_frontier_size, queue);
 }
 
-void multi_events_BFS(sycl::queue& queue, SYCL_CompressedGraphData& data, std::vector<sycl::event>& events) {
+void multi_events_BFS(sycl::queue& queue, SYCL_SimpleGraphData& data, std::vector<sycl::event>& events) {
 
     bool* changed = s::malloc_shared<bool>(1, queue);
     queue.fill(changed, false, 1);
@@ -156,7 +129,7 @@ public:
       sycl::queue queue (sycl::gpu_selector_v, 
                         sycl::property_list{sycl::property::queue::enable_profiling{}});
 
-      SYCL_CompressedGraphData sycl_data(data);
+      SYCL_SimpleGraphData sycl_data(data);
 
       std::vector<sycl::event> events;
 

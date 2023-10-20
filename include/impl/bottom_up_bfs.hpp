@@ -12,8 +12,10 @@
 
 namespace s = sycl;
 
-void bottomUpBFS() {
-  
+void bottomUpBFS(s::queue& q, SYCL_CompressedGraphData& data) {
+  q.submit([&](s::handler& cgh) {    
+
+  }).wait();
 }
 
 class BottomUpBFS {
@@ -27,6 +29,8 @@ public:
     CompressedHostData compressed_data(data);
     SYCL_CompressedGraphData sycl_data(compressed_data);
 
+    
+    sycl_data.write_back();
 
   }
 private:

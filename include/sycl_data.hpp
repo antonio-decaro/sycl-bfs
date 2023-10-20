@@ -65,4 +65,33 @@ public:
     sycl::buffer<size_t, 1> graphs_offests, nodes_offsets, nodes_count, edges_offsets;
 };
 
+class SYCL_SimpleGraphData {
+public:
+    SYCL_SimpleGraphData(CSRHostData& data) :
+        host_data(data),
+        num_nodes(data.num_nodes),
+        edges_offsets(sycl::buffer<size_t, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
+        edges(sycl::buffer<nodeid_t, 1>{data.csr.edges.data(), sycl::range{data.csr.edges.size()}}),
+        distances(sycl::buffer<distance_t, 1>{data.distances.data(), sycl::range{data.distances.size()}}),
+        parents(sycl::buffer<nodeid_t, 1>{data.parents.data(), sycl::range{data.parents.size()}})
+    {
+        distances.set_write_back(false);
+        parents.set_write_back(false);
+    }
+
+    void write_back() {
+        distances.set_final_data(host_data.distances.data());
+        parents.set_final_data(host_data.parents.data());
+        distances.set_write_back(true);
+        parents.set_write_back(true);
+    }
+
+    size_t num_nodes;
+    CSRHostData& host_data;
+    sycl::buffer<nodeid_t, 1> parents, edges;
+    sycl::buffer<size_t, 1> edges_offsets;
+    sycl::buffer<distance_t, 1> distances;
+};
+
+
 #endif
