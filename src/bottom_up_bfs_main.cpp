@@ -3,7 +3,9 @@
 #include "utils.hpp"
 #include "arg_parse.hpp"
 #include "kernel_sizes.hpp"
-#include "impl/bottom_up_bfs.hpp"
+#include "impl/mul_bfs.hpp"
+#include "operators.hpp"
+#include "benchmark.hpp"
 
 int main(int argc, char** argv) {
 
@@ -27,11 +29,26 @@ int main(int argc, char** argv) {
 
         // run BFS
         try {
-            BottomUpBFS bfs(graphs);
-            bfs.run<8, true>(); // dummy kernel to initialize data
-            bfs.run<8>(local_size);
-            bfs.run<16>(local_size);
-            bfs.run<32>(local_size);
+            MultipleGraphBFS bfs8(graphs, std::make_shared<BottomUpBFSOperator<8>>());
+            MultipleGraphBFS bfs16(graphs, std::make_shared<BottomUpBFSOperator<16>>());
+            MultipleGraphBFS bfs32(graphs, std::make_shared<BottomUpBFSOperator<32>>());
+            
+            bfs8.run(local_size); // dummy kernel
+
+            std::cout << "SubGroup size  8:" << std::endl;
+            bench_time_t time = bfs8.run(local_size);
+            std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
+            std::cout << "- Total time: " << time.total_time << " us" << std::endl;
+
+            std::cout << "SubGroup size 16:" << std::endl;
+            time = bfs16.run(local_size);
+            std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
+            std::cout << "- Total time: " << time.total_time << " us" << std::endl;
+            
+            std::cout << "SubGroup size 32:" << std::endl;
+            time = bfs32.run(local_size);
+            std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
+            std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
             if (print_result) {
                 for (int i = 0; i < graphs.size(); i++) {
