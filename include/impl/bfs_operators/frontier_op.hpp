@@ -1,5 +1,5 @@
-#ifndef FRONTIER_OP_HPP
-#define FRONTIER_OP_HPP
+#ifndef __FRONTIER_OP_HPP__
+#define __FRONTIER_OP_HPP__
 
 #include "impl/mul_bfs.hpp"
 #include "impl/simpl_bfs.hpp"

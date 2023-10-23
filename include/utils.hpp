@@ -1,3 +1,6 @@
+#ifndef __UTILS_HPP__
+#define __UTILS_HPP__
+
 #include <fstream>
 #include <cstddef>
 #include <vector>
@@ -86,3 +89,5 @@ std::vector<std::vector<nodeid_t>> read_graph_from_file(std::string path) {
 
     return adjacency_list;
 }
+
+#endif

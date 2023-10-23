@@ -1,8 +1,8 @@
 #include <vector>
 #include "types.hpp"
 
-#ifndef CSR_GRAPH_HPP
-#define CSR_GRAPH_HPP
+#ifndef __CSR_GRAPH_HPP__
+#define __CSR_GRAPH_HPP__
 
 typedef struct {
     std::vector<size_t> offsets;

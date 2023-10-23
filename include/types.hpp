@@ -1,8 +1,8 @@
 #include <cstddef>
 #include <cstdint>
 
-#ifndef TYPES_HPP
-#define TYPES_HPP
+#ifndef __TYPES_HPP__
+#define __TYPES_HPP__
 
 typedef int nodeid_t;
 typedef int distance_t;

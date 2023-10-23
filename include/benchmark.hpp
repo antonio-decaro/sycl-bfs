@@ -1,5 +1,5 @@
-#ifndef BENCMARK_HPP
-#define BENCMARK_HPP
+#ifndef __BENCMARK_HPP__
+#define __BENCMARK_HPP__
 
 typedef struct {
   float kernel_time;

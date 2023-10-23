@@ -4,8 +4,8 @@
 #include "host_data.hpp"
 #include "types.hpp"
 
-#ifndef SYCL_DATA_HPP
-#define SYCL_DATA_HPP
+#ifndef __SYCL_DATA_HPP__
+#define __SYCL_DATA_HPP__
 
 class SYCL_VectorizedGraphData {
 public:

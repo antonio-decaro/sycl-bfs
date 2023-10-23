@@ -1,5 +1,5 @@
-#ifndef MUL_BFS_HPP
-#define MUL_BFS_HPP
+#ifndef __MUL_BFS_HPP__
+#define __MUL_BFS_HPP__
 
 #include <sycl/sycl.hpp>
 #include <fstream>
