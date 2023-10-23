@@ -37,18 +37,18 @@ int main(int argc, char** argv) {
 
             std::cout << "SubGroup size  8:" << std::endl;
             bench_time_t time = bfs8.run(local_size);
-            std::cout << "- Kernel time: " << time.kernel_time << std::endl;
-            std::cout << "- Total time: " << time.total_time << std::endl;
+            std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
+            std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
             std::cout << "SubGroup size 16:" << std::endl;
             time = bfs16.run(local_size);
-            std::cout << "- Kernel time: " << time.kernel_time << std::endl;
-            std::cout << "- Total time: " << time.total_time << std::endl;
+            std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
+            std::cout << "- Total time: " << time.total_time << " us" << std::endl;
             
             std::cout << "SubGroup size 32:" << std::endl;
             time = bfs32.run(local_size);
-            std::cout << "- Kernel time: " << time.kernel_time << std::endl;
-            std::cout << "- Total time: " << time.total_time << std::endl;
+            std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
+            std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
             if (print_result) {
                 for (int i = 0; i < graphs.size(); i++) {

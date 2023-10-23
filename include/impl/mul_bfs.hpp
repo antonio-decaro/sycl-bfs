@@ -35,7 +35,6 @@ public:
 
 		CompressedHostData compressed_data(data);
 		SYCL_CompressedGraphData sycl_data(compressed_data);
-		SYCL_VectorizedGraphData sycl_vectorized_data(data);
 
 		std::vector<s::event> events;
 
@@ -53,8 +52,8 @@ public:
 		if (write_back) sycl_data.write_back();
 
 		return bench_time_t {
-			.total_time = static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count()),
 			.kernel_time = static_cast<float>(duration) / 1000,
+			.total_time = static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(end_glob - start_glob).count()),
 			.to_microsec = 1.0f
 		};
 	}
