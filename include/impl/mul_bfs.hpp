@@ -23,6 +23,7 @@ public:
 	virtual void operator() (s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
 };
 
+template<bool compressed = true>
 class MultipleGraphBFS {
 public:
 	MultipleGraphBFS(std::vector<CSRHostData>& data, std::shared_ptr<MultiBFSOperator> op) : 
@@ -33,14 +34,25 @@ public:
 		s::queue queue (s::gpu_selector_v, 
 						s::property_list{s::property::queue::enable_profiling{}});
 
-		CompressedHostData compressed_data(data);
-		SYCL_CompressedGraphData sycl_data(compressed_data);
 
 		std::vector<s::event> events;
 
-		auto start_glob = std::chrono::high_resolution_clock::now();
-		(*op)(queue, sycl_data, events, wg_size);
-		auto end_glob = std::chrono::high_resolution_clock::now();
+		std::chrono::system_clock::time_point start_glob, end_glob;
+
+		if constexpr (compressed) {
+			CompressedHostData compressed_data(data);
+			SYCL_CompressedGraphData sycl_data(compressed_data);
+			start_glob = std::chrono::high_resolution_clock::now();
+			(*op)(queue, sycl_data, events, wg_size);
+			end_glob = std::chrono::high_resolution_clock::now();
+			if (write_back) sycl_data.write_back();
+		} else {
+			SYCL_VectorizedGraphData sycl_data{data};
+			start_glob = std::chrono::high_resolution_clock::now();
+			(*op)(queue, sycl_data, events, wg_size);
+			end_glob = std::chrono::high_resolution_clock::now();
+			if (write_back) sycl_data.write_back();
+		}
 
 		long duration = 0;
 		for (s::event& e : events) {
@@ -49,7 +61,6 @@ public:
 			duration += (end - start);
 		}
 
-		if (write_back) sycl_data.write_back();
 
 		return bench_time_t {
 			.kernel_time = static_cast<float>(duration) / 1000,

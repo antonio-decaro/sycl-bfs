@@ -52,23 +52,25 @@ int main(int argc, char **argv)
 	// run BFS
 	try
 	{
-		MultipleGraphBFS bfs8(graphs, std::make_shared<BottomUpBFSOperator<8>>());
-		MultipleGraphBFS bfs16(graphs, std::make_shared<BottomUpBFSOperator<16>>());
-		MultipleGraphBFS bfs32(graphs, std::make_shared<BottomUpBFSOperator<32>>());
+		MultipleGraphBFS<false> bfs8(graphs, std::make_shared<BottomUpBFSOperator<8>>());
+		MultipleGraphBFS<false> bfs16(graphs, std::make_shared<BottomUpBFSOperator<16>>());
+		MultipleGraphBFS<false> bfs32(graphs, std::make_shared<BottomUpBFSOperator<32>>());
 
-		bfs8.run(local_size); // dummy kernel
 
 		std::cout << "SubGroup size  8:" << std::endl;
+		bfs8.run(local_size, false); // dummy kernel
 		bench_time_t time = bfs8.run(local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 16:" << std::endl;
+		bfs16.run(local_size, false); // dummy kernel
 		time = bfs16.run(local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 32:" << std::endl;
+		bfs32.run(local_size, false); // dummy kernel
 		time = bfs32.run(local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
@@ -78,7 +80,7 @@ int main(int argc, char **argv)
 			for (int i = 0; i < graphs.size(); i++)
 			{
 				std::cout << "[!!!] Graph " << i << std::endl;
-				for (nodeid_t j = 0; j < graphs[i].parents.size(); j++)
+				for (nodeid_t j = 0; j < graphs[i].num_nodes; j++)
 				{
 					std::cout << "- N: " << std::setfill(' ') << std::setw(3) << j
 										<< " | Parent: " << std::setfill(' ') << std::setw(3) << graphs[i].parents[j] 
