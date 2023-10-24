@@ -1,10 +1,10 @@
 #include <sycl/sycl.hpp>
+#include <iomanip>
 #include "host_data.hpp"
 #include "utils.hpp"
 #include "arg_parse.hpp"
 #include "kernel_sizes.hpp"
-#include "impl/mul_bfs.hpp"
-#include "operators.hpp"
+#include "bfs.hpp"
 #include "benchmark.hpp"
 
 int main(int argc, char **argv)
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 				std::cout << "[!!!] Graph " << i << std::endl;
 				for (nodeid_t j = 0; j < graphs[i].parents.size(); j++)
 				{
-					std::cout << j << " Parent: " << graphs[i].parents[j] << " Distance: " << graphs[i].distances[j] << std::endl;
+					std::cout << "- N: " << j << " | Parent: " << graphs[i].parents[j] << " | Distance: " << graphs[i].distances[j] << std::endl;
 				}
 			}
 		}

@@ -3,8 +3,7 @@
 #include "utils.hpp"
 #include "arg_parse.hpp"
 #include "kernel_sizes.hpp"
-#include "impl/mul_bfs.hpp"
-#include "operators.hpp"
+#include "bfs.hpp"
 #include "benchmark.hpp"
 
 int main(int argc, char** argv) {

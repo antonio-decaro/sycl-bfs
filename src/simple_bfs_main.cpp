@@ -4,8 +4,7 @@
 #include "utils.hpp"
 #include "arg_parse.hpp"
 #include "kernel_sizes.hpp"
-#include "impl/simpl_bfs.hpp"
-#include "operators.hpp"
+#include "bfs.hpp"
 
 int main(int argc, char **argv)
 {
