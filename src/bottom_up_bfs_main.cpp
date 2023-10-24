@@ -37,12 +37,14 @@ int main(int argc, char **argv)
 	// DEBUG
 	// fnames = {"../data/random_graphs/random_0.dat", "../data/random_graphs/random_1.dat", "../data/random_graphs/random_2.dat"};
 
-	if (fnames.empty()) {
+	if (fnames.empty())
+	{
 		std::cout << "[!] No graph to process!" << std::endl;
 		return 0;
 	}
 
-	for (auto& s : fnames) {
+	for (auto &s : fnames)
+	{
 		graphs.push_back(build_csr_host_data(read_graph_from_file(s)));
 	}
 	std::cout << "[*] " << graphs.size() << " Graphs loaded!" << std::endl;
@@ -78,7 +80,9 @@ int main(int argc, char **argv)
 				std::cout << "[!!!] Graph " << i << std::endl;
 				for (nodeid_t j = 0; j < graphs[i].parents.size(); j++)
 				{
-					std::cout << "- N: " << j << " | Parent: " << graphs[i].parents[j] << " | Distance: " << graphs[i].distances[j] << std::endl;
+					std::cout << "- N: " << std::setfill(' ') << std::setw(3) << j
+										<< " | Parent: " << std::setfill(' ') << std::setw(3) << graphs[i].parents[j] 
+										<< " | Distance: " << std::setfill(' ') << std::setw(2) << graphs[i].distances[j] << std::endl;
 				}
 			}
 		}

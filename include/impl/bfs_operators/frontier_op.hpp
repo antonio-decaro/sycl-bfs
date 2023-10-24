@@ -159,34 +159,33 @@ public:
 
     int level = 0;
     while (*old_frontier_size) {
-        auto e = queue.submit([&](s::handler& h) [[intel::reqd_sub_group_size(sg_size)]] {
-            s::accessor offsets_acc(data.edges_offsets, h, s::read_only);
-            s::accessor edges_acc(data.edges, h, s::read_only);
-            s::accessor distances_acc(data.distances, h, s::read_write);
-            s::accessor parents_acc(data.parents, h, s::write_only, s::no_init);
+      auto e = queue.submit([&](s::handler& h) [[intel::reqd_sub_group_size(sg_size)]] {
+        s::accessor offsets_acc(data.edges_offsets, h, s::read_only);
+        s::accessor edges_acc(data.edges, h, s::read_only);
+        s::accessor distances_acc(data.distances, h, s::read_write);
+        s::accessor parents_acc(data.parents, h, s::write_only, s::no_init);
 
-            size_t size = *old_frontier_size;
-            h.parallel_for(s::range<1>{size}, [=](s::id<1> idx) {
-                s::atomic_ref<int, s::memory_order::relaxed, s::memory_scope::device> frontier_size_ref(*frontier_size);
-                int node = frontier[idx[0]];
-                
-                for (int i = offsets_acc[node]; i < offsets_acc[node + 1]; i++) {
-                    int neighbor = edges_acc[i];
-                    if (distances_acc[neighbor] == -1) {
-                        int pos = frontier_size_ref.fetch_add(1);
-                        distances_acc[neighbor] = distances_acc[node] + 1;
-                        parents_acc[neighbor] = node;
-                        frontier[pos] = neighbor;
-                    }
-                }
+        size_t size = *old_frontier_size;
+        h.parallel_for(s::range<1>{size}, [=](s::id<1> idx) {
+          s::atomic_ref<int, s::memory_order::relaxed, s::memory_scope::device> frontier_size_ref(*frontier_size);
+          int node = frontier[idx[0]];
+          
+          for (int i = offsets_acc[node]; i < offsets_acc[node + 1]; i++) {
+            int neighbor = edges_acc[i];
+            if (distances_acc[neighbor] == -1) {
+              int pos = frontier_size_ref.fetch_add(1);
+              distances_acc[neighbor] = distances_acc[node] + 1;
+              parents_acc[neighbor] = node;
+              frontier[pos] = neighbor;
+            }
+          }
 
-            });
-            
         });
-        events.push_back(e);
-        e.wait();
-        *old_frontier_size = *frontier_size;
-        *frontier_size = 0;
+      });
+      events.push_back(e);
+      e.wait();
+      *old_frontier_size = *frontier_size;
+      *frontier_size = 0;
     }
 
     s::free(frontier, queue);
