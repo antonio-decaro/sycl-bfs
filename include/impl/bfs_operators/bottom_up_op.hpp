@@ -3,8 +3,8 @@
 
 #include "impl/mul_bfs.hpp"
 
-// TODO fix: It goes out of resources with more than one graph
-// TODO fix: Some nodes are not visited
+// TODO fix: Weird behaviour when executing with multiple graphs
+// TODO: set the BFS source dynamically
 
 namespace s = sycl;
 
@@ -25,14 +25,18 @@ class BottomUpBFSOperator : public MultiBFSOperator {
 
       typedef uint64_t mask_t;
       const unsigned MASK_SIZE = 64; // the size of the mask according to the type of mask_t
-      const size_t MAX_NODES = *std::max(data.host_data.nodes_count.begin(), data.host_data.nodes_count.end()); // get the max number of nodes in graph
+      const size_t MAX_NODES = *std::max_element(data.host_data.nodes_count.begin(), data.host_data.nodes_count.end()); // get the max number of nodes in graph
       const unsigned NUM_MASKS = MAX_NODES / MASK_SIZE + 1; // the number of masks needed to represent all nodes
       s::local_accessor<mask_t, 1> frontier{s::range<1>{NUM_MASKS}, cgh};
       s::local_accessor<mask_t, 1> next{s::range<1>{NUM_MASKS}, cgh};
+      s::local_accessor<mask_t, 1> visited{s::range<1>{NUM_MASKS}, cgh};
       s::local_accessor<int, 1> running{s::range<1>{1}, cgh};
+
+      s::stream os {1024, 256, cgh}; // TODO REMOVE
 
 
       cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> item) [[intel::reqd_sub_group_size(sg_size)]] {
+        s::atomic_ref<int, s::memory_order::relaxed, s::memory_scope::work_group> running_ar{running[0]};
         auto grp_id = item.get_group_linear_id();
         auto loc_id = item.get_local_id(0);
         auto edge_offset = graphs_offsets_acc[grp_id];
@@ -46,14 +50,14 @@ class BottomUpBFSOperator : public MultiBFSOperator {
           distances_acc[node_offset + i] = -1;
         }
         if (loc_id == 0) {
-          running[0] = 1;
-          next[0] = 1;
+          running_ar.store(1);
+          frontier[0] = next[0] = 1;
           distances_acc[node_offset] = 0;
           parents_acc[node_offset] = 0;
         }
 
         item.barrier(s::access::fence_space::local_space);
-        while (running[0]) {
+        while (running_ar.load()) {
           if (loc_id < NUM_MASKS) {
             frontier[loc_id] = next[loc_id];
             next[loc_id] = 0;
@@ -62,15 +66,17 @@ class BottomUpBFSOperator : public MultiBFSOperator {
 
           for (nodeid_t node_id = loc_id; node_id < node_count; node_id += local_size) {
             int node_mask_offet = node_id / MASK_SIZE; // to access the right mask
+            mask_t node_bit = 1 << (node_id % MASK_SIZE); // to access the right bit in the mask 
+            s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group> next_ar{next[node_mask_offet]};
             if (parents_acc[node_offset + node_id] == -1) {
               for (int i = offsets_acc[node_offset + node_id]; i < offsets_acc[node_offset + node_id + 1]; i++) {
                 nodeid_t neighbor = edges_acc[i];
                 int neighbor_mask_offset = neighbor / MASK_SIZE;
-                mask_t neighbor_mask = 1 << (neighbor % MASK_SIZE);
-                if (frontier[neighbor_mask_offset] & neighbor_mask) {
+                mask_t neighbor_bit = 1 << (neighbor % MASK_SIZE);
+                if (frontier[neighbor_mask_offset] & neighbor_bit) {
                   parents_acc[node_offset + node_id] = neighbor;
                   distances_acc[node_offset + node_id] = distances_acc[node_offset + neighbor] + 1;
-                  next[node_mask_offet] |= 1 << (node_id % MASK_SIZE);
+                  next_ar |= node_bit;
                   break;
                 }
               }
@@ -80,7 +86,7 @@ class BottomUpBFSOperator : public MultiBFSOperator {
           running[0] = 0;
           item.barrier(s::access::fence_space::local_space);
           if (loc_id < NUM_MASKS) {
-            running[0] = running[0] || next[loc_id];
+            running_ar.store(running_ar.load() || next[loc_id], s::memory_order::acq_rel);
           }
           item.barrier(s::access::fence_space::local_space);
         }
