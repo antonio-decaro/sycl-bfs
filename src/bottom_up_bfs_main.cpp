@@ -14,6 +14,7 @@ int main(int argc, char **argv)
 	size_t local_size = DEFAULT_WORK_GROUP_SIZE;
 	std::vector<std::string> fnames;
 	std::vector<CSRHostData> graphs;
+	std::string directory = "";
 
 	// read multiple graphs from different files
 	if (argc >= 2)
@@ -29,13 +30,19 @@ int main(int argc, char **argv)
 			{
 				local_size = std::stoi(std::string(argv[i]).substr(7));
 				continue;
+			} else if (std::string(argv[i]).find("-d=") == 0) 
+			{
+				directory = std::string(argv[i]).substr(3);
+				continue;
 			}
 			fnames.push_back(argv[i]);
 		}
 	}
 
-	// DEBUG
-	// fnames = {"../data/random_graphs/random_0.dat", "../data/random_graphs/random_1.dat", "../data/random_graphs/random_2.dat"};
+	if (directory != "")
+	{
+		fnames = get_files_in_directory(directory);
+	}
 
 	if (fnames.empty())
 	{
