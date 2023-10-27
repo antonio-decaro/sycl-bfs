@@ -9,7 +9,7 @@
 namespace s = sycl;
 
 template <size_t sg_size = 16>
-class BottomUpBFSOperator : public MultiBFSOperator {
+class BottomUpMBFSOperator : public MultiBFSOperator {
   void operator() (s::queue& queue, SYCL_CompressedGraphData& data, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) {
     s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
     s::range<1> local{wg_size};

@@ -56,29 +56,35 @@ int main(int argc, char **argv)
 	}
 	std::cout << "[*] " << graphs.size() << " Graphs loaded!" << std::endl;
 
+	std::vector<nodeid_t> sources;
+	for (int i = 0; i < graphs.size(); i++)
+	{
+		sources.push_back(0);
+	}
+
 	// run BFS
 	try
 	{
-		MultipleGraphBFS<false> bfs8(graphs, std::make_shared<BottomUpBFSOperator<8>>());
-		MultipleGraphBFS<false> bfs16(graphs, std::make_shared<BottomUpBFSOperator<16>>());
-		MultipleGraphBFS<false> bfs32(graphs, std::make_shared<BottomUpBFSOperator<32>>());
+		MultipleGraphBFS<false> bfs8(graphs, std::make_shared<BottomUpMBFSOperator<8>>());
+		MultipleGraphBFS<false> bfs16(graphs, std::make_shared<BottomUpMBFSOperator<16>>());
+		MultipleGraphBFS<false> bfs32(graphs, std::make_shared<BottomUpMBFSOperator<32>>());
 
 
 		std::cout << "SubGroup size  8:" << std::endl;
-		bfs8.run(local_size, false); // dummy kernel
-		bench_time_t time = bfs8.run(local_size);
+		bfs8.run(sources.data(), local_size, false); // dummy kernel
+		bench_time_t time = bfs8.run(sources.data(), local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 16:" << std::endl;
-		bfs16.run(local_size, false); // dummy kernel
-		time = bfs16.run(local_size);
+		bfs16.run(sources.data(), local_size, false); // dummy kernel
+		time = bfs16.run(sources.data(), local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 32:" << std::endl;
-		bfs32.run(local_size, false); // dummy kernel
-		time = bfs32.run(local_size);
+		bfs32.run(sources.data(), local_size, false); // dummy kernel
+		time = bfs32.run(sources.data(), local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 

@@ -29,7 +29,7 @@ public:
 	MultipleGraphBFS(std::vector<CSRHostData>& data, std::shared_ptr<MultiBFSOperator> op) : 
 		data(data), op(op) {}
 
-	bench_time_t run(const size_t wg_size = DEFAULT_WORK_GROUP_SIZE, bool write_back = true) {
+	bench_time_t run(const nodeid_t *sources, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE, bool write_back = true) {
 			// s queue definition
 		s::queue queue (s::gpu_selector_v, 
 						s::property_list{s::property::queue::enable_profiling{}});
