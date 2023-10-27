@@ -42,12 +42,14 @@ public:
 		if constexpr (compressed) {
 			CompressedHostData compressed_data(data);
 			SYCL_CompressedGraphData sycl_data(compressed_data);
+			init_data(queue, sources, sycl_data);
 			start_glob = std::chrono::high_resolution_clock::now();
 			(*op)(queue, sycl_data, events, wg_size);
 			end_glob = std::chrono::high_resolution_clock::now();
 			if (write_back) sycl_data.write_back();
 		} else {
 			SYCL_VectorizedGraphData sycl_data{data};
+			init_data(queue, sources, sycl_data);
 			start_glob = std::chrono::high_resolution_clock::now();
 			(*op)(queue, sycl_data, events, wg_size);
 			end_glob = std::chrono::high_resolution_clock::now();
@@ -72,6 +74,14 @@ public:
 private:
 	std::vector<CSRHostData>& data;
 	std::shared_ptr<MultiBFSOperator> op;
+
+	void init_data(s::queue& q, const nodeid_t *sources, SYCL_CompressedGraphData& data) {
+		data.init(q, sources).wait_and_throw();
+	}
+
+	void init_data(s::queue& q, const nodeid_t *sources, SYCL_VectorizedGraphData& data) {
+		data.init(q, sources).wait_and_throw();
+	}
 };
 
 #endif

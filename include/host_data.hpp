@@ -24,6 +24,7 @@ typedef struct {
 class CompressedHostData {
 public:
     CompressedHostData(std::vector<CSRHostData>& data) : data(data) {
+        num_graphs = data.size();
         int total_nodes = 0;
         for (int i = 0; i < data.size(); i++) {
             if (i != 0) {
@@ -60,6 +61,7 @@ public:
         }
     }
 
+    size_t num_graphs;
     std::vector<CSRHostData>& data;
     size_t total_offset_size = 0;
     std::vector<size_t> compressed_offsets, nodes_count, graphs_offsets, nodes_offsets;

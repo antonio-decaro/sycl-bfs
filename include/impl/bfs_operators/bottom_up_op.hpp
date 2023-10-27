@@ -17,8 +17,8 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
     auto e = queue.submit([&](s::handler& cgh) {
       s::accessor offsets_acc{data.edges_offsets, cgh, s::read_only};
       s::accessor edges_acc{data.edges, cgh, s::read_only};
-      s::accessor distances_acc{data.distances, cgh, s::write_only, s::no_init};
-      s::accessor parents_acc{data.parents, cgh, s::read_write, s::no_init};
+      s::accessor distances_acc{data.distances, cgh, s::read_write};
+      s::accessor parents_acc{data.parents, cgh, s::read_write};
       s::accessor graphs_offsets_acc{data.graphs_offests, cgh, s::read_only};
       s::accessor nodes_offsets_acc{data.nodes_offsets, cgh, s::read_only};
       s::accessor nodes_count_acc{data.nodes_count, cgh, s::read_only};
@@ -43,16 +43,9 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
         auto node_count = nodes_count_acc[grp_id];
         auto local_size = item.get_local_range(0);
 
-        // init data
-        for (int i = loc_id; i < node_count; i += local_size) {
-          parents_acc[node_offset + i] = -1;
-          distances_acc[node_offset + i] = -1;
-        }
         if (loc_id == 0) {
           running_ar.store(1);
           frontier[0] = next[0] = 1;
-          distances_acc[node_offset] = 0;
-          parents_acc[node_offset] = 0;
         }
 
         item.barrier(s::access::fence_space::local_space);
@@ -105,14 +98,14 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
 
       s::accessor<size_t, 1, s::access::mode::read> offsets_acc[MAX_PARALLEL_GRAPHS];
       s::accessor<nodeid_t, 1, s::access::mode::read> edges_acc[MAX_PARALLEL_GRAPHS];
-      s::accessor<nodeid_t, 1, s::access::mode::discard_read_write> parents_acc[MAX_PARALLEL_GRAPHS];
-      s::accessor<distance_t, 1, s::access::mode::discard_read_write> distances_acc[MAX_PARALLEL_GRAPHS];
+      s::accessor<nodeid_t, 1, s::access::mode::read_write> parents_acc[MAX_PARALLEL_GRAPHS];
+      s::accessor<distance_t, 1, s::access::mode::read_write> distances_acc[MAX_PARALLEL_GRAPHS];
 
       for (int i = 0; i < data.data.size(); i++) {
         offsets_acc[i] = data.offsets[i].get_access<s::access::mode::read>(cgh);
         edges_acc[i] = data.edges[i].get_access<s::access::mode::read>(cgh);
-        parents_acc[i] = data.parents[i].get_access<s::access::mode::discard_read_write>(cgh);
-        distances_acc[i] = data.distances[i].get_access<s::access::mode::discard_read_write>(cgh);
+        parents_acc[i] = data.parents[i].get_access<s::access::mode::read_write>(cgh);
+        distances_acc[i] = data.distances[i].get_access<s::access::mode::read_write>(cgh);
         n_nodes[i] = data.data[i].num_nodes;
       }
 
@@ -136,16 +129,9 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
         auto distances = distances_acc[grp_id];
         auto node_count = n_nodes[grp_id];
 
-        // init data
-        for (int i = loc_id; i < node_count; i += local_size) {
-          parents[i] = -1;
-          distances[i] = -1;
-        }
         if (loc_id == 0) {
           running_ar.store(1);
           frontier[0] = next[0] = 1;
-          distances[0] = 0;
-          parents[0] = 0;
         }
 
         item.barrier(s::access::fence_space::local_space);
