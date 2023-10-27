@@ -16,8 +16,8 @@ public:
     auto e = queue.submit([&](s::handler& cgh) {
       s::accessor offsets_acc{data.edges_offsets, cgh, s::read_only};
       s::accessor edges_acc{data.edges, cgh, s::read_only};
-      s::accessor distances_acc{data.distances, cgh, s::read_write, s::no_init};
-      s::accessor parents_acc{data.parents, cgh, s::write_only, s::no_init};
+      s::accessor distances_acc{data.distances, cgh, s::read_write};
+      s::accessor parents_acc{data.parents, cgh, s::read_write, s::no_init};
       s::accessor graphs_offsets_acc{data.graphs_offests, cgh, s::read_only};
       s::accessor nodes_offsets_acc{data.nodes_offsets, cgh, s::read_only};
       s::accessor nodes_count_acc{data.nodes_count, cgh, s::read_only};
@@ -36,16 +36,13 @@ public:
           auto node_count = nodes_count_acc[grp_id];
           auto local_size = item.get_local_range(0);
 
-          // initi frontier
-          frontier[loc_id] = 0;
-
-          // init data
+          // init frontier
           for (int i = loc_id; i < node_count; i += local_size) {
-              parents_acc[node_offset + i] = -1;
-              distances_acc[node_offset + i] = -1;
+            if (distances_acc[node_offset + i] == 0) {
+              frontier[0] = i;
+              break;
+            }
           }
-          distances_acc[node_offset] = 0;
-          fsize_prev[0] = 1;
           
           item.barrier(s::access::fence_space::local_space);
           while (fsize_prev[0] > 0) {
@@ -109,12 +106,17 @@ public:
         auto offsets = offsets_acc[grp_id];
         auto edges = edges_acc[grp_id];
         auto size = n_nodes[grp_id];
+        auto local_size = item.get_local_range(0);
+
+        for (int i = loc_id; i < size; i += local_size) {
+          if (distances[i] == 0) {
+            frontier[0] = i;
+            break;
+          }
+        }
 
         if (loc_id == 0) {
-          distances[0] = 0;
           fsize_prev[0] = 1;
-        } else if (loc_id < size) {
-          distances[loc_id] = -1;
         }
         
         item.barrier(s::access::fence_space::local_space);
