@@ -71,19 +71,19 @@ int main(int argc, char **argv)
 
 
 		std::cout << "SubGroup size  8:" << std::endl;
-		bfs8.run(sources.data(), local_size, false); // dummy kernel
+		bfs8.run(sources.data(), local_size); // dummy kernel
 		bench_time_t time = bfs8.run(sources.data(), local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 16:" << std::endl;
-		bfs16.run(sources.data(), local_size, false); // dummy kernel
+		bfs16.run(sources.data(), local_size); // dummy kernel
 		time = bfs16.run(sources.data(), local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 32:" << std::endl;
-		bfs32.run(sources.data(), local_size, false); // dummy kernel
+		bfs32.run(sources.data(), local_size); // dummy kernel
 		time = bfs32.run(sources.data(), local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
