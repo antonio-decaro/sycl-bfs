@@ -7,6 +7,8 @@
 #include "bfs.hpp"
 #include "benchmark.hpp"
 
+// TODO Fix: some problem with the Compressed Representation!!!
+
 int main(int argc, char **argv)
 {
 	args_t args;
@@ -29,9 +31,9 @@ int main(int argc, char **argv)
 	// run BFS
 	try
 	{
-		MultipleGraphBFS bfs8(args.graphs, std::make_shared<BottomUpMBFSOperator<8>>());
-		MultipleGraphBFS bfs16(args.graphs, std::make_shared<BottomUpMBFSOperator<16>>());
-		MultipleGraphBFS bfs32(args.graphs, std::make_shared<BottomUpMBFSOperator<32>>());
+		MultipleGraphBFS<false> bfs8(args.graphs, std::make_shared<BottomUpMBFSOperator<8>>());
+		MultipleGraphBFS<false> bfs16(args.graphs, std::make_shared<BottomUpMBFSOperator<16>>());
+		MultipleGraphBFS<false> bfs32(args.graphs, std::make_shared<BottomUpMBFSOperator<32>>());
 		bench_time_t time;
 
 		std::cout << "SubGroup size  8:" << std::endl;

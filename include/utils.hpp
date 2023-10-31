@@ -85,7 +85,7 @@ MatrixHostData build_adj_matrix(std::string path)
 	return host_data;
 }
 
-std::vector<std::vector<nodeid_t>> read_graph_from_file(std::string path)
+std::vector<std::vector<nodeid_t>> read_graph_from_file(std::string path, bool undirected = false)
 {
 	std::vector<std::vector<nodeid_t>> adjacency_list;
 	size_t num_nodes;
@@ -98,6 +98,8 @@ std::vector<std::vector<nodeid_t>> read_graph_from_file(std::string path)
 	while (file >> src >> dst)
 	{
 		adjacency_list[src].push_back(dst);
+		if (undirected)
+			adjacency_list[dst].push_back(src);
 		num_edges++;
 	}
 	file.close();

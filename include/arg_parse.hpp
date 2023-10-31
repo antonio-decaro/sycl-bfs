@@ -29,7 +29,7 @@ typedef struct {
 	std::vector<CSRHostData> graphs;
 } args_t;
 
-void get_mul_graph_args(int argc, char** argv, args_t &args)
+void get_mul_graph_args(int argc, char** argv, args_t &args, bool undirected = false)
 {
 	std::string directory = "";
 	args.local_size = DEFAULT_WORK_GROUP_SIZE;
@@ -63,6 +63,6 @@ void get_mul_graph_args(int argc, char** argv, args_t &args)
 
 	for (auto &s : args.fnames)
 	{
-		args.graphs.push_back(build_csr_host_data(read_graph_from_file(s)));
+		args.graphs.push_back(build_csr_host_data(read_graph_from_file(s, undirected)));
 	}
 }
