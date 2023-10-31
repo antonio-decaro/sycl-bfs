@@ -105,13 +105,4 @@ std::vector<std::vector<nodeid_t>> read_graph_from_file(std::string path)
 	return adjacency_list;
 }
 
-std::vector<std::string> get_files_in_directory(const std::string dname)
-{
-	std::vector<std::string> fnames;
-	for (const auto & entry : std::filesystem::directory_iterator(dname)) {
-		fnames.push_back(entry.path().string());
-	}
-	return fnames;
-}
-
 #endif
