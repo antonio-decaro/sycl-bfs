@@ -4,17 +4,21 @@
 #include "impl/mul_bfs.hpp"
 
 // TODO fix: Weird behaviour when executing with multiple graphs
-// TODO: set the BFS source dynamically
 
 namespace s = sycl;
 
+typedef uint32_t mask_t;
+constexpr size_t MASK_SIZE = 32; // the size of the mask according to the type of mask_t
+
 template <size_t sg_size = 16>
-class BottomUpMBFSOperator : public MultiBFSOperator {
-  void operator() (s::queue& queue, SYCL_CompressedGraphData& data, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) {
+class BottomUpMBFSOperator : public MultiBFSOperator
+{
+  void operator()(s::queue &queue, SYCL_CompressedGraphData &data, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
+  {
     s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
     s::range<1> local{wg_size};
 
-    auto e = queue.submit([&](s::handler& cgh) {
+    auto e = queue.submit([&](s::handler &cgh) {
       s::accessor offsets_acc{data.edges_offsets, cgh, s::read_only};
       s::accessor edges_acc{data.edges, cgh, s::read_only};
       s::accessor distances_acc{data.distances, cgh, s::read_write};
@@ -23,19 +27,14 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
       s::accessor nodes_offsets_acc{data.nodes_offsets, cgh, s::read_only};
       s::accessor nodes_count_acc{data.nodes_count, cgh, s::read_only};
 
-      typedef uint64_t mask_t;
-      const unsigned MASK_SIZE = 64; // the size of the mask according to the type of mask_t
       const size_t MAX_NODES = *std::max_element(data.host_data.nodes_count.begin(), data.host_data.nodes_count.end()); // get the max number of nodes in graph
-      const unsigned NUM_MASKS = MAX_NODES / MASK_SIZE + 1; // the number of masks needed to represent all nodes
+      const size_t NUM_MASKS = MAX_NODES / MASK_SIZE + 1; // the number of masks needed to represent all nodes
       s::local_accessor<mask_t, 1> frontier{s::range<1>{NUM_MASKS}, cgh};
       s::local_accessor<mask_t, 1> next{s::range<1>{NUM_MASKS}, cgh};
-      s::local_accessor<int, 1> running{s::range<1>{1}, cgh};
-
-      s::stream os {1024, 256, cgh}; // TODO REMOVE
-
+      s::local_accessor<mask_t, 1> running{s::range<1>{1}, cgh};
 
       cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> item) [[intel::reqd_sub_group_size(sg_size)]] {
-        s::atomic_ref<int, s::memory_order::relaxed, s::memory_scope::work_group> running_ar{running[0]};
+        s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group> running_ar{running[0]};
         auto grp_id = item.get_group_linear_id();
         auto loc_id = item.get_local_id(0);
         auto edge_offset = graphs_offsets_acc[grp_id];
@@ -60,6 +59,7 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
             int node_mask_offet = node_id / MASK_SIZE; // to access the right mask
             mask_t node_bit = 1 << (node_id % MASK_SIZE); // to access the right bit in the mask 
             s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group> next_ar{next[node_mask_offet]};
+
             if (parents_acc[node_offset + node_id] == -1) {
               for (int i = offsets_acc[node_offset + node_id]; i < offsets_acc[node_offset + node_id + 1]; i++) {
                 nodeid_t neighbor = edges_acc[i];
@@ -75,25 +75,25 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
             }
           }
           
-          running[0] = 0;
+          if (loc_id == 0) running_ar.store(0);
           item.barrier(s::access::fence_space::local_space);
           if (loc_id < NUM_MASKS) {
-            running_ar.store(running_ar.load() || next[loc_id], s::memory_order::acq_rel);
+            running_ar += next[loc_id];
           }
           item.barrier(s::access::fence_space::local_space);
         }
-      });
+      }); 
     });
     events.push_back(e);
     e.wait_and_throw();
   }
 
-  void operator() (s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) {
+  void operator()(s::queue &queue, SYCL_VectorizedGraphData &data, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
+  {
     s::range<1> global{wg_size * (data.data.size())}; // each workgroup will process a graph
     s::range<1> local{wg_size};
 
-    auto e = queue.submit([&](s::handler& cgh) {
-
+    auto e = queue.submit([&](s::handler &cgh) {
       size_t n_nodes [MAX_PARALLEL_GRAPHS];
 
       s::accessor<size_t, 1, s::access::mode::read> offsets_acc[MAX_PARALLEL_GRAPHS];
@@ -115,10 +115,10 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
       const unsigned NUM_MASKS = MAX_NODES / MASK_SIZE + 1; // the number of masks needed to represent all nodes
       s::local_accessor<mask_t, 1> frontier{s::range<1>{NUM_MASKS}, cgh};
       s::local_accessor<mask_t, 1> next{s::range<1>{NUM_MASKS}, cgh};
-      s::local_accessor<int, 1> running{s::range<1>{1}, cgh};
+      s::local_accessor<mask_t, 1> running{s::range<1>{1}, cgh};
 
       cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> item) [[intel::reqd_sub_group_size(sg_size)]] {
-        s::atomic_ref<int, s::memory_order::relaxed, s::memory_scope::work_group> running_ar{running[0]};
+        s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group> running_ar{running[0]};
         auto grp_id = item.get_group_linear_id();
         auto loc_id = item.get_local_id(0);
         auto local_size = item.get_local_range(0);
@@ -164,15 +164,14 @@ class BottomUpMBFSOperator : public MultiBFSOperator {
           running[0] = 0;
           item.barrier(s::access::fence_space::local_space);
           if (loc_id < NUM_MASKS) {
-            running_ar.store(running_ar.load() || next[loc_id], s::memory_order::acq_rel);
+            running_ar += next[loc_id];
           }
           item.barrier(s::access::fence_space::local_space);
         }
-      });
-    });
+      }); });
     events.push_back(e);
     e.wait_and_throw();
-  } 
+  }
 };
 
 #endif
