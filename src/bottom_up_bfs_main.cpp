@@ -31,9 +31,22 @@ int main(int argc, char **argv)
 	// run BFS
 	try
 	{
+#ifdef SYCL_BFS_COMPRESSED_GRAPH
+		MultipleGraphBFS<true> bfs8(args.graphs, std::make_shared<BottomUpMBFSOperator<8>>());
+		MultipleGraphBFS<true> bfs16(args.graphs, std::make_shared<BottomUpMBFSOperator<16>>());
+		MultipleGraphBFS<true> bfs32(args.graphs, std::make_shared<BottomUpMBFSOperator<32>>());
+#else
 		MultipleGraphBFS<false> bfs8(args.graphs, std::make_shared<BottomUpMBFSOperator<8>>());
 		MultipleGraphBFS<false> bfs16(args.graphs, std::make_shared<BottomUpMBFSOperator<16>>());
 		MultipleGraphBFS<false> bfs32(args.graphs, std::make_shared<BottomUpMBFSOperator<32>>());
+
+		if (args.graphs.size() > MAX_PARALLEL_GRAPHS) {
+			std::cout << "[Warning] Too many graphs to process in parallel!" << std::endl;
+			std::cout << "[*] Cutting off last " << args.graphs.size() - MAX_PARALLEL_GRAPHS << " graphs" << std::endl;
+			args.graphs.resize(MAX_PARALLEL_GRAPHS);
+			args.fnames.resize(MAX_PARALLEL_GRAPHS);
+		}
+#endif
 		bench_time_t time;
 
 		std::cout << "SubGroup size  8:" << std::endl;

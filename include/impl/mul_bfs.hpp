@@ -23,7 +23,7 @@ public:
 	virtual void operator() (s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
 };
 
-template<bool compressed = true>
+template<bool compressed_representation = false>
 class MultipleGraphBFS {
 public:
 	MultipleGraphBFS(std::vector<CSRHostData>& data, std::shared_ptr<MultiBFSOperator> op) : 
@@ -39,7 +39,7 @@ public:
 
 		std::chrono::system_clock::time_point start_glob, end_glob;
 
-		if constexpr (compressed) {
+		if constexpr (compressed_representation) {
 			CompressedHostData compressed_data(data);
 			SYCL_CompressedGraphData sycl_data(compressed_data);
 			init_data(queue, sources, sycl_data);
