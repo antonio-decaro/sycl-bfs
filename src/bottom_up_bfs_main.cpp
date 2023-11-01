@@ -7,8 +7,6 @@
 #include "bfs.hpp"
 #include "benchmark.hpp"
 
-// TODO Fix: some problem with the Compressed Representation!!!
-
 int main(int argc, char **argv)
 {
 	args_t args;
@@ -49,13 +47,14 @@ int main(int argc, char **argv)
 #endif
 		bench_time_t time;
 
+		bfs8.run(sources, args.local_size, false);
 		std::cout << "SubGroup size  8:" << std::endl;
-		time = bfs8.run(sources, args.local_size);
+		time = bfs8.run(sources, args.local_size, true);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 16:" << std::endl;
-		time = bfs16.run(sources, args.local_size);
+		time = bfs16.run(sources, args.local_size, false);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 

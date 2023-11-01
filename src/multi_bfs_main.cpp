@@ -7,8 +7,6 @@
 #include "bfs.hpp"
 #include "benchmark.hpp"
 
-// TODO Fix: some problem with the Compressed Representation!!!
-
 int main(int argc, char **argv)
 {
 	args_t args;

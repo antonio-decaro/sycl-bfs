@@ -6,7 +6,6 @@
 #include "kernel_sizes.hpp"
 
 // TODO doesn't work with compressed representation
-
 template<size_t sg_size = 16>
 class FrontierMBFSOperator : public MultiBFSOperator {
 public:

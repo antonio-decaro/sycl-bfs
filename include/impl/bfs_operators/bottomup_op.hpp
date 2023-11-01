@@ -3,8 +3,6 @@
 
 #include "impl/mul_bfs.hpp"
 
-// TODO fix: Weird behaviour when executing with multiple graphs
-
 namespace s = sycl;
 
 typedef uint32_t mask_t;
@@ -40,7 +38,6 @@ class BottomUpMBFSOperator : public MultiBFSOperator
         s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group> running_ar{running[0]};
         auto grp_id = item.get_group_linear_id();
         auto loc_id = item.get_local_id(0);
-        auto edge_offset = graphs_offsets_acc[grp_id];
         auto node_offset = nodes_offsets_acc[grp_id];
         auto node_count = nodes_count_acc[grp_id];
         auto local_size = item.get_local_range(0);

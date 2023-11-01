@@ -89,6 +89,8 @@ public:
 	std::vector<sycl::buffer<distance_t, 1>> distances;
 };
 
+
+// TODO fix: when executing multiple times, data is not consistent 
 class SYCL_CompressedGraphData
 {
 public:

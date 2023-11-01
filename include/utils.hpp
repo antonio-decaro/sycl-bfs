@@ -66,7 +66,6 @@ CSRHostData build_csr_host_data(const std::vector<std::vector<nodeid_t>> &adjace
 	return host_data;
 }
 
-// TODO: fix roadnet can not be loaded (too large)
 MatrixHostData build_adj_matrix(std::string path)
 {
 	MatrixHostData host_data;

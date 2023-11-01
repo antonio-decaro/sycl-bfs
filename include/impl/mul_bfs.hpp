@@ -19,16 +19,18 @@ namespace s = sycl;
 
 class MultiBFSOperator {
 public:
-	virtual void operator() (s::queue& queue, 
-													 SYCL_CompressedGraphData& data, 
-													 const std::vector<nodeid_t> &sources, 
-													 std::vector<s::event>& events, 
-													 const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
-	virtual void operator() (s::queue& queue, 
-													 SYCL_VectorizedGraphData& data, 
-													 const std::vector<nodeid_t> &sources, 
-													 std::vector<s::event>& events, 
-													 const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
+	virtual void operator() (
+		s::queue& queue, 
+		SYCL_CompressedGraphData& data, 
+		const std::vector<nodeid_t> &sources, 
+		std::vector<s::event>& events, 
+		const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
+	virtual void operator() (
+		s::queue& queue, 
+		SYCL_VectorizedGraphData& data, 
+		const std::vector<nodeid_t> &sources, 
+		std::vector<s::event>& events, 
+		const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
 };
 
 template<bool compressed_representation = false>
