@@ -72,6 +72,7 @@ public:
     e.wait_and_throw();
   }
 
+  // TODO fix: to slow compered to compressed representation
   void operator() (s::queue& queue, SYCL_VectorizedGraphData& data, const std::vector<nodeid_t> &sources, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) {
     s::range<1> global{DEFAULT_WORK_GROUP_SIZE * (data.data.size())}; // each workgroup will process a graph
     s::range<1> local{DEFAULT_WORK_GROUP_SIZE};
