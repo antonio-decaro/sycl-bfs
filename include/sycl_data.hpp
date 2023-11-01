@@ -22,11 +22,10 @@ public:
 		}
 	}
 
-	sycl::event init(sycl::queue &q, const nodeid_t *sources, size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
+	sycl::event init(sycl::queue &q, const std::vector<nodeid_t> &sources, size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
 	{
 		size_t num_graphs = data.size();
-
-		sycl::buffer<nodeid_t, 1> device_source{sources, sycl::range{num_graphs}};
+		sycl::buffer<nodeid_t, 1> device_source{sources.data(), sycl::range{sources.size()}};
 
 		sycl::accessor<size_t, 1, sycl::access::mode::read> offsets_acc[MAX_PARALLEL_GRAPHS];
 		sycl::accessor<nodeid_t, 1, sycl::access::mode::read> edges_acc[MAX_PARALLEL_GRAPHS];
@@ -103,9 +102,9 @@ public:
 		distances(sycl::buffer<distance_t, 1>{data.compressed_distances.data(), sycl::range{data.compressed_distances.size()}}),
 		parents(sycl::buffer<nodeid_t, 1>{data.compressed_parents.data(), sycl::range{data.compressed_parents.size()}}) {}
 
-	sycl::event init(sycl::queue &q, const nodeid_t *sources, size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
+	sycl::event init(sycl::queue &q, const std::vector<nodeid_t> &sources, size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
 	{
-		sycl::buffer<nodeid_t, 1> device_source{sources, sycl::range{host_data.num_graphs}};
+		sycl::buffer<nodeid_t, 1> device_source{sources.data(), sycl::range{sources.size()}};
 
 		return q.submit([&](sycl::handler &h) {
 			sycl::range global {host_data.num_graphs * wg_size};

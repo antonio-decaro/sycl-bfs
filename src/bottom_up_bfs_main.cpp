@@ -50,17 +50,17 @@ int main(int argc, char **argv)
 		bench_time_t time;
 
 		std::cout << "SubGroup size  8:" << std::endl;
-		time = bfs8.run(sources.data(), args.local_size);
+		time = bfs8.run(sources, args.local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 16:" << std::endl;
-		time = bfs16.run(sources.data(), args.local_size);
+		time = bfs16.run(sources, args.local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 
 		std::cout << "SubGroup size 32:" << std::endl;
-		time = bfs32.run(sources.data(), args.local_size);
+		time = bfs32.run(sources, args.local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
 

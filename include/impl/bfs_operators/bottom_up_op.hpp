@@ -13,10 +13,12 @@ constexpr size_t MASK_SIZE = 32; // the size of the mask according to the type o
 template <size_t sg_size = 16>
 class BottomUpMBFSOperator : public MultiBFSOperator
 {
-  void operator()(s::queue &queue, SYCL_CompressedGraphData &data, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
+  void operator()(s::queue &queue, SYCL_CompressedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
   {
     s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
     s::range<1> local{wg_size};
+
+    s::buffer<nodeid_t, 1> sources_buf{sources.data(), s::range<1>{sources.size()}};
 
     auto e = queue.submit([&](s::handler &cgh) {
       s::accessor offsets_acc{data.edges_offsets, cgh, s::read_only};
@@ -26,6 +28,7 @@ class BottomUpMBFSOperator : public MultiBFSOperator
       s::accessor graphs_offsets_acc{data.graphs_offests, cgh, s::read_only};
       s::accessor nodes_offsets_acc{data.nodes_offsets, cgh, s::read_only};
       s::accessor nodes_count_acc{data.nodes_count, cgh, s::read_only};
+      s::accessor sources_acc{sources_buf, cgh, s::read_only};
 
       const size_t MAX_NODES = *std::max_element(data.host_data.nodes_count.begin(), data.host_data.nodes_count.end()); // get the max number of nodes in graph
       const size_t NUM_MASKS = MAX_NODES / MASK_SIZE + 1; // the number of masks needed to represent all nodes
@@ -42,9 +45,13 @@ class BottomUpMBFSOperator : public MultiBFSOperator
         auto node_count = nodes_count_acc[grp_id];
         auto local_size = item.get_local_range(0);
 
+        // init the frontier
         if (loc_id == 0) {
           running_ar.store(1);
-          frontier[0] = next[0] = 1;
+          auto source = sources_acc[grp_id];
+          int source_offset = source / MASK_SIZE;
+          mask_t source_bit = 1 << (source % MASK_SIZE);
+          frontier[source_offset] = next[source_offset] = source_bit;
         }
 
         item.barrier(s::access::fence_space::local_space);
@@ -88,10 +95,12 @@ class BottomUpMBFSOperator : public MultiBFSOperator
     e.wait_and_throw();
   }
 
-  void operator()(s::queue &queue, SYCL_VectorizedGraphData &data, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
+  void operator()(s::queue &queue, SYCL_VectorizedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
   {
     s::range<1> global{wg_size * (data.data.size())}; // each workgroup will process a graph
     s::range<1> local{wg_size};
+
+    s::buffer<nodeid_t, 1> sources_buf{sources.data(), s::range<1>{sources.size()}};
 
     auto e = queue.submit([&](s::handler &cgh) {
       size_t n_nodes [MAX_PARALLEL_GRAPHS];
@@ -100,6 +109,7 @@ class BottomUpMBFSOperator : public MultiBFSOperator
       s::accessor<nodeid_t, 1, s::access::mode::read> edges_acc[MAX_PARALLEL_GRAPHS];
       s::accessor<nodeid_t, 1, s::access::mode::read_write> parents_acc[MAX_PARALLEL_GRAPHS];
       s::accessor<distance_t, 1, s::access::mode::read_write> distances_acc[MAX_PARALLEL_GRAPHS];
+      s::accessor<nodeid_t, 1, s::access::mode::read> sources_acc{sources_buf, cgh, s::read_only};
 
       for (int i = 0; i < data.data.size(); i++) {
         offsets_acc[i] = data.offsets[i].get_access<s::access::mode::read>(cgh);
@@ -131,7 +141,10 @@ class BottomUpMBFSOperator : public MultiBFSOperator
 
         if (loc_id == 0) {
           running_ar.store(1);
-          frontier[0] = next[0] = 1;
+          auto source = sources_acc[grp_id];
+          int source_offset = source / MASK_SIZE;
+          mask_t source_bit = 1 << (source % MASK_SIZE);
+          frontier[source_offset] = next[source_offset] = source_bit;
         }
 
         item.barrier(s::access::fence_space::local_space);

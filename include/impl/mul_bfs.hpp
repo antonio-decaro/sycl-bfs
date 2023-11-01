@@ -19,8 +19,16 @@ namespace s = sycl;
 
 class MultiBFSOperator {
 public:
-	virtual void operator() (s::queue& queue, SYCL_CompressedGraphData& data, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
-	virtual void operator() (s::queue& queue, SYCL_VectorizedGraphData& data, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
+	virtual void operator() (s::queue& queue, 
+													 SYCL_CompressedGraphData& data, 
+													 const std::vector<nodeid_t> &sources, 
+													 std::vector<s::event>& events, 
+													 const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
+	virtual void operator() (s::queue& queue, 
+													 SYCL_VectorizedGraphData& data, 
+													 const std::vector<nodeid_t> &sources, 
+													 std::vector<s::event>& events, 
+													 const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) = 0;
 };
 
 template<bool compressed_representation = false>
@@ -29,7 +37,7 @@ public:
 	MultipleGraphBFS(std::vector<CSRHostData>& data, std::shared_ptr<MultiBFSOperator> op) : 
 		data(data), op(op) {}
 
-	bench_time_t run(const nodeid_t *sources, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE, bool write_back = true) {
+	bench_time_t run(const std::vector<nodeid_t> &sources, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE, bool write_back = true) {
 			// s queue definition
 		s::queue queue (s::gpu_selector_v, 
 						s::property_list{s::property::queue::enable_profiling{}});
@@ -44,14 +52,14 @@ public:
 			SYCL_CompressedGraphData sycl_data(compressed_data);
 			init_data(queue, sources, sycl_data);
 			start_glob = std::chrono::high_resolution_clock::now();
-			(*op)(queue, sycl_data, events, wg_size);
+			(*op)(queue, sycl_data, sources, events, wg_size);
 			end_glob = std::chrono::high_resolution_clock::now();
 			if (write_back) sycl_data.write_back();
 		} else {
 			SYCL_VectorizedGraphData sycl_data{data};
 			init_data(queue, sources, sycl_data);
 			start_glob = std::chrono::high_resolution_clock::now();
-			(*op)(queue, sycl_data, events, wg_size);
+			(*op)(queue, sycl_data, sources, events, wg_size);
 			end_glob = std::chrono::high_resolution_clock::now();
 			if (write_back) sycl_data.write_back();
 		}
@@ -75,11 +83,11 @@ private:
 	std::vector<CSRHostData>& data;
 	std::shared_ptr<MultiBFSOperator> op;
 
-	void init_data(s::queue& q, const nodeid_t *sources, SYCL_CompressedGraphData& data) {
+	void init_data(s::queue& q, const std::vector<nodeid_t> &sources, SYCL_CompressedGraphData& data) {
 		data.init(q, sources).wait_and_throw();
 	}
 
-	void init_data(s::queue& q, const nodeid_t *sources, SYCL_VectorizedGraphData& data) {
+	void init_data(s::queue& q, const std::vector<nodeid_t> &sources, SYCL_VectorizedGraphData& data) {
 		data.init(q, sources).wait_and_throw();
 	}
 };
