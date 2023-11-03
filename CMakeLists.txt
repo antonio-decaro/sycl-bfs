@@ -23,4 +23,4 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=${SYCL_TARGET}")
 # add target
 add_executable(simple_bfs src/simple_bfs_main.cpp)
 add_executable(bottomup_bfs src/bottom_up_bfs_main.cpp)
-add_executable(frontier_bfs src/multi_bfs_main.cpp)
+add_executable(frontier_bfs src/frontier_bfs_main.cpp)
