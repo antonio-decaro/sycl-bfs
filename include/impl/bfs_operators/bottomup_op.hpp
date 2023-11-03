@@ -25,6 +25,15 @@ constexpr size_t MASK_SIZE = 32; // the size of the mask according to the type o
 template <size_t sg_size = 16>
 class BottomUpMBFSOperator : public MultiBFSOperator
 {
+  /**
+   * @brief This method performs the BFS on multiple graphs using a bottom-up approach.
+   * 
+   * @param queue The SYCL queue to submit the kernel to.
+   * @param data The compressed graph data.
+   * @param sources The vector of source nodes.
+   * @param events The vector of events to be updated with the new event.
+   * @param wg_size The size of the work-group to be used in the kernel.
+   */
   void operator()(s::queue &queue, SYCL_CompressedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
   {
     s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
@@ -106,6 +115,15 @@ class BottomUpMBFSOperator : public MultiBFSOperator
     e.wait_and_throw();
   }
 
+  /**
+   * @brief This method performs the BFS on multiple graphs using a bottom-up approach.
+   * 
+   * @param queue The SYCL queue to submit the kernel to.
+   * @param data The vectorized graph data.
+   * @param sources The vector of source nodes.
+   * @param events The vector of events to be updated with the new event.
+   * @param wg_size The size of the work-group to be used in the kernel.
+   */
   void operator()(s::queue &queue, SYCL_VectorizedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
   {
     s::range<1> global{wg_size * (data.data.size())}; // each workgroup will process a graph
