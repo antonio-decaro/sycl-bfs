@@ -36,7 +36,7 @@ class BottomUpMBFSOperator : public MultiBFSOperator
    */
   void operator()(s::queue &queue, SYCL_CompressedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
   {
-    s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
+    s::range<1> global{wg_size * (data.host_data.num_graphs)}; // each workgroup will process a graph
     s::range<1> local{wg_size};
 
     s::buffer<nodeid_t, 1> sources_buf{sources.data(), s::range<1>{sources.size()}};
