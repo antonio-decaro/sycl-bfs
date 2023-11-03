@@ -1,3 +1,8 @@
+/**
+ * @file bottomup_op.hpp
+ * @brief Defines the BottomUpMBFSOperator class, which implements the bottom-up BFS traversal algorithm.
+ */
+
 #ifndef __BOTTOM_UP_OP_HPP__
 #define __BOTTOM_UP_OP_HPP__
 
@@ -7,6 +12,35 @@ namespace s = sycl;
 
 typedef uint32_t mask_t;
 constexpr size_t MASK_SIZE = 32; // the size of the mask according to the type of mask_t
+
+/**
+ * @brief Implements the bottom-up BFS traversal algorithm.
+ * 
+ * This class provides two operator() overloads, one for SYCL_CompressedGraphData and one for SYCL_VectorizedGraphData.
+ * Both overloads take a SYCL queue, a graph data structure, a vector of source nodes, a vector of events, and an optional work group size.
+ * The operator() overloads launch a SYCL kernel that performs the bottom-up BFS traversal algorithm on the input graph(s).
+ * 
+ * @tparam sg_size The sub-group size to use in the kernel.
+ */
+template <size_t sg_size = 16>
+class BottomUpMBFSOperator : public MultiBFSOperator
+{
+  void operator()(s::queue &queue, SYCL_CompressedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE);
+
+  void operator()(s::queue &queue, SYCL_VectorizedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE);
+};
+
+#endif
+#ifndef __BOTTOM_UP_OP_HPP__
+#define __BOTTOM_UP_OP_HPP__
+
+#include "impl/mul_bfs.hpp"
+
+namespace s = sycl;
+
+typedef uint32_t mask_t;
+constexpr size_t MASK_SIZE = 32; // the size of the mask according to the type of mask_t
+
 
 template <size_t sg_size = 16>
 class BottomUpMBFSOperator : public MultiBFSOperator

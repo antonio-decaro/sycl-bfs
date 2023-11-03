@@ -1,3 +1,7 @@
+/**
+ * @file frontier_op.hpp
+ * @brief This file contains the implementation of the BFS operators that use a frontier-based approach.
+ */
 #ifndef __FRONTIER_OP_HPP__
 #define __FRONTIER_OP_HPP__
 
@@ -5,11 +9,25 @@
 #include "impl/simpl_bfs.hpp"
 #include "kernel_sizes.hpp"
 
-// TODO doesn't work with compressed representation
+/**
+ * @brief This class implements the BFS operator that uses a frontier-based approach for multiple graphs.
+ * 
+ * @tparam sg_size The size of the sub-group to be used in the kernel.
+ */
 template<size_t sg_size = 16>
 class FrontierMBFSOperator : public MultiBFSOperator {
 public:
   FrontierMBFSOperator() = default;
+
+  /**
+   * @brief This method performs the BFS on multiple graphs using a frontier-based approach.
+   * 
+   * @param queue The SYCL queue to submit the kernel to.
+   * @param data The compressed graph data.
+   * @param sources The vector of source nodes.
+   * @param events The vector of events to be updated with the new event.
+   * @param wg_size The size of the work-group to be used in the kernel.
+   */
   void operator() (s::queue& queue, SYCL_CompressedGraphData& data, const std::vector<nodeid_t> &sources, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) {
     s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
     s::range<1> local{wg_size};
@@ -72,7 +90,15 @@ public:
     e.wait_and_throw();
   }
 
-  // TODO fix: to slow compered to compressed representation
+  /**
+   * @brief This method performs the BFS on multiple graphs using a frontier-based approach.
+   * 
+   * @param queue The SYCL queue to submit the kernel to.
+   * @param data The vectorized graph data.
+   * @param sources The vector of source nodes.
+   * @param events The vector of events to be updated with the new event.
+   * @param wg_size The size of the work-group to be used in the kernel.
+   */
   void operator() (s::queue& queue, SYCL_VectorizedGraphData& data, const std::vector<nodeid_t> &sources, std::vector<s::event>& events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE) {
     s::range<1> global{DEFAULT_WORK_GROUP_SIZE * (data.data.size())}; // each workgroup will process a graph
     s::range<1> local{DEFAULT_WORK_GROUP_SIZE};
@@ -149,10 +175,21 @@ public:
   } 
 };
 
-
+/**
+ * @brief This class implements the BFS operator that uses a frontier-based approach for a single graph.
+ * 
+ * @tparam sg_size The size of the sub-group to be used in the kernel.
+ */
 template <size_t sg_size = 16>
 class FrontierBFSOperator : public SingleBFSOperator {
 public:
+  /**
+   * @brief This method performs the BFS on a single graph using a frontier-based approach.
+   * 
+   * @param queue The SYCL queue to submit the kernel to.
+   * @param data The simple graph data.
+   * @param events The vector of events to be updated with the new event.
+   */
   void operator() (sycl::queue& queue, SYCL_SimpleGraphData& data, std::vector<sycl::event>& events) {
     int* frontier = s::malloc_device<int>(data.num_nodes, queue);
     int* frontier_size = s::malloc_shared<int>(1, queue);
