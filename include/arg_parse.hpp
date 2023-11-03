@@ -13,8 +13,7 @@ bool check_args(int &argc, char **&argv)
 	return true;
 }
 
-std::vector<std::string> get_files_in_directory(const std::string dname)
-{
+std::vector<std::string> get_files_in_directory(const std::string dname) {
 	std::vector<std::string> fnames;
 	for (const auto & entry : std::filesystem::directory_iterator(dname)) {
 		fnames.push_back(entry.path().string());
@@ -29,8 +28,7 @@ typedef struct {
 	std::vector<CSRHostData> graphs;
 } args_t;
 
-void get_mul_graph_args(int argc, char** argv, args_t &args, bool undirected = false)
-{
+void get_mul_graph_args(int argc, char** argv, args_t &args, bool undirected = false) {
 	std::string directory = "";
 	args.local_size = DEFAULT_WORK_GROUP_SIZE;
 
@@ -47,10 +45,12 @@ void get_mul_graph_args(int argc, char** argv, args_t &args, bool undirected = f
 			{
 				args.local_size = std::stoi(std::string(argv[i]).substr(7));
 				continue;
-			} else if (std::string(argv[i]).find("-d=") == 0) 
-			{
+			} else if (std::string(argv[i]).find("-d=") == 0) {
 				directory = std::string(argv[i]).substr(3);
 				continue;
+			} else if (std::string(argv[i]).find("-h") != std::string::npos || std::string(argv[i]).find("--help") != std::string::npos) {
+				std::cout << "Usage: " << argv[0] << " [-p] [-local=<local_size>] [-d=<directory>] <graph_path...>" << std::endl;
+				exit(0);
 			}
 			args.fnames.push_back(argv[i]);
 		}
