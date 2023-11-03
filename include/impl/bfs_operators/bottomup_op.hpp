@@ -25,26 +25,6 @@ constexpr size_t MASK_SIZE = 32; // the size of the mask according to the type o
 template <size_t sg_size = 16>
 class BottomUpMBFSOperator : public MultiBFSOperator
 {
-  void operator()(s::queue &queue, SYCL_CompressedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE);
-
-  void operator()(s::queue &queue, SYCL_VectorizedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE);
-};
-
-#endif
-#ifndef __BOTTOM_UP_OP_HPP__
-#define __BOTTOM_UP_OP_HPP__
-
-#include "impl/mul_bfs.hpp"
-
-namespace s = sycl;
-
-typedef uint32_t mask_t;
-constexpr size_t MASK_SIZE = 32; // the size of the mask according to the type of mask_t
-
-
-template <size_t sg_size = 16>
-class BottomUpMBFSOperator : public MultiBFSOperator
-{
   void operator()(s::queue &queue, SYCL_CompressedGraphData &data, const std::vector<nodeid_t> &sources, std::vector<s::event> &events, const size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
   {
     s::range<1> global{wg_size * (data.host_data.graphs_offsets.size() - 1)}; // each workgroup will process a graph
