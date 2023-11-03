@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include "host_data.hpp"
+#include "kernel_sizes.hpp"
 #include "types.hpp"
 
 #ifndef __SYCL_DATA_HPP__
