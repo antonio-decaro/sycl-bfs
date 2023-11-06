@@ -91,7 +91,6 @@ public:
 };
 
 
-// TODO fix: Not all graphs get written back, and other dosn't get visited at all
 class SYCL_CompressedGraphData
 {
 public:

@@ -33,14 +33,15 @@ public:
 		int total_nodes = 0;
 		for (int i = 0; i < data.size(); i++)
 		{
+			std::vector<size_t> new_offsets { data[i].csr.offsets };
 			if (i != 0)
 			{
-				data[i].csr.offsets.erase(data[i].csr.offsets.begin());
+				new_offsets.erase(new_offsets.begin());
 			}
 
-			for (int j = 0; j < data[i].csr.offsets.size(); j++)
+			for (int j = 0; j < new_offsets.size(); j++)
 			{
-				compressed_offsets.push_back(total_offset_size + data[i].csr.offsets[j]);
+				compressed_offsets.push_back(total_offset_size + new_offsets[j]);
 			}
 			compressed_edges.insert(compressed_edges.end(), data[i].csr.edges.begin(), data[i].csr.edges.end());
 
