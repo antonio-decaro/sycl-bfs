@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 #include "kernel_sizes.hpp"
 
 // read the graph from the file
@@ -30,6 +31,7 @@ typedef struct {
 
 void get_mul_graph_args(int argc, char** argv, args_t &args, bool undirected = false) {
 	std::string directory = "";
+	std::vector<std::string> tmp_fnames;
 	args.local_size = DEFAULT_WORK_GROUP_SIZE;
 
 	if (argc >= 2)
@@ -49,16 +51,23 @@ void get_mul_graph_args(int argc, char** argv, args_t &args, bool undirected = f
 				directory = std::string(argv[i]).substr(3);
 				continue;
 			} else if (std::string(argv[i]).find("-h") != std::string::npos || std::string(argv[i]).find("--help") != std::string::npos) {
-				std::cout << "Usage: " << argv[0] << " [-p] [-local=<local_size>] [-d=<directory>] <graph_path...>" << std::endl;
+				std::cout << "Usage: " << argv[0] << " [-p] [-local=<local_size>] <graph files or directories...>" << std::endl;
 				exit(0);
 			}
-			args.fnames.push_back(argv[i]);
+			tmp_fnames.push_back(argv[i]);
 		}
 	}
 
-	if (directory != "")
+	for (auto &s : tmp_fnames)
 	{
-		args.fnames = get_files_in_directory(directory);
+		if (std::filesystem::is_directory(s)) {
+			auto files = get_files_in_directory(s);
+			for (auto &f : files) {
+				args.fnames.push_back(f);
+			}
+		} else {
+			args.fnames.push_back(s);
+		}
 	}
 
 	for (auto &s : args.fnames)
