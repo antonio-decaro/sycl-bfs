@@ -15,7 +15,6 @@ typedef struct
 	size_t num_nodes;
 	CSR csr;
 	std::vector<nodeid_t> parents;
-	std::vector<distance_t> distances;
 } CSRHostData;
 
 typedef struct
@@ -55,7 +54,6 @@ public:
 		graphs_offsets.push_back(total_offset_size);
 		nodes_offsets.push_back(total_nodes);
 
-		compressed_distances = std::vector<distance_t>(total_nodes, -1);
 		compressed_parents = std::vector<nodeid_t>(total_nodes, -1);
 	}
 
@@ -66,7 +64,6 @@ public:
 		{
 			for (size_t i = 0; i < d.num_nodes; i++)
 			{
-				d.distances[i] = compressed_distances[k];
 				d.parents[i] = compressed_parents[k];
 				k++;
 			}
@@ -77,7 +74,6 @@ public:
 	std::vector<CSRHostData> &data;
 	size_t total_offset_size = 0;
 	std::vector<size_t> compressed_offsets, nodes_count, graphs_offsets, nodes_offsets;
-	std::vector<distance_t> compressed_distances;
 	std::vector<nodeid_t> compressed_edges, compressed_parents;
 };
 

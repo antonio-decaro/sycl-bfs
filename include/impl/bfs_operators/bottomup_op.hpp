@@ -44,7 +44,6 @@ class BottomUpMBFSOperator : public MultiBFSOperator
     auto e = queue.submit([&](s::handler &cgh) {
       s::accessor offsets_acc{data.edges_offsets, cgh, s::read_only};
       s::accessor edges_acc{data.edges, cgh, s::read_only};
-      s::accessor distances_acc{data.distances, cgh, s::read_write};
       s::accessor parents_acc{data.parents, cgh, s::read_write};
       s::accessor graphs_offsets_acc{data.graphs_offests, cgh, s::read_only};
       s::accessor nodes_offsets_acc{data.nodes_offsets, cgh, s::read_only};
@@ -94,7 +93,6 @@ class BottomUpMBFSOperator : public MultiBFSOperator
                 mask_t neighbor_bit = 1 << (neighbor % MASK_SIZE);
                 if (frontier[neighbor_mask_offset] & neighbor_bit) {
                   parents_acc[node_offset + node_id] = neighbor;
-                  distances_acc[node_offset + node_id] = distances_acc[node_offset + neighbor] + 1;
                   next_ar |= node_bit;
                   break;
                 }
@@ -137,14 +135,12 @@ class BottomUpMBFSOperator : public MultiBFSOperator
       s::accessor<size_t, 1, s::access::mode::read> offsets_acc[MAX_PARALLEL_GRAPHS];
       s::accessor<nodeid_t, 1, s::access::mode::read> edges_acc[MAX_PARALLEL_GRAPHS];
       s::accessor<nodeid_t, 1, s::access::mode::read_write> parents_acc[MAX_PARALLEL_GRAPHS];
-      s::accessor<distance_t, 1, s::access::mode::read_write> distances_acc[MAX_PARALLEL_GRAPHS];
       s::accessor<nodeid_t, 1, s::access::mode::read> sources_acc{sources_buf, cgh, s::read_only};
 
       for (int i = 0; i < data.data.size(); i++) {
         offsets_acc[i] = data.offsets[i].get_access<s::access::mode::read>(cgh);
         edges_acc[i] = data.edges[i].get_access<s::access::mode::read>(cgh);
         parents_acc[i] = data.parents[i].get_access<s::access::mode::read_write>(cgh);
-        distances_acc[i] = data.distances[i].get_access<s::access::mode::read_write>(cgh);
         n_nodes[i] = data.data[i].num_nodes;
       }
 
@@ -165,7 +161,6 @@ class BottomUpMBFSOperator : public MultiBFSOperator
         auto offsets = offsets_acc[grp_id];
         auto edges = edges_acc[grp_id];
         auto parents = parents_acc[grp_id];
-        auto distances = distances_acc[grp_id];
         auto node_count = n_nodes[grp_id];
 
         if (loc_id == 0) {
@@ -195,7 +190,6 @@ class BottomUpMBFSOperator : public MultiBFSOperator
                 mask_t neighbor_bit = 1 << (neighbor % MASK_SIZE);
                 if (frontier[neighbor_mask_offset] & neighbor_bit) {
                   parents[node_id] = neighbor;
-                  distances[node_id] = distances[neighbor] + 1;
                   next_ar |= node_bit;
                   break;
                 }

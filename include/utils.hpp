@@ -59,8 +59,6 @@ CSRHostData build_csr_host_data(const std::vector<std::vector<nodeid_t>> &adjace
 	CSRHostData host_data;
 	host_data.csr = build_csr(adjacency_list);
 	host_data.num_nodes = host_data.csr.offsets.size() - 1;
-	host_data.distances.resize(host_data.num_nodes);
-	std::fill(host_data.distances.begin(), host_data.distances.end(), -1);
 	host_data.parents.resize(host_data.num_nodes);
 	std::fill(host_data.parents.begin(), host_data.parents.end(), -1);
 	return host_data;

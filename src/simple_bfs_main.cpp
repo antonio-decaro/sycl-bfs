@@ -21,9 +21,6 @@ int main(int argc, char **argv)
 	std::cout << "[*] Offset size: " << data.csr.offsets.size() << std::endl;
 	std::cout << "[*] Edges size: " << data.csr.edges.size() << std::endl;
 
-	// init data
-	data.distances[0] = 0;
-
 	try
 	{
 		// run BFS
@@ -37,7 +34,7 @@ int main(int argc, char **argv)
 			std::ofstream out(argv[2]);
 			for (nodeid_t i = 0; i < data.parents.size(); i++)
 			{
-				out << i << " Parent: " << data.parents[i] << " Distance: " << data.distances[i] << std::endl;
+				out << i << " Parent: " << data.parents[i] << std::endl;
 			}
 			out.close();
 		}

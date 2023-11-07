@@ -69,9 +69,8 @@ int main(int argc, char **argv)
 				std::cout << "[!!!] Graph " << i << ": " << args.fnames[i] << std::endl;
 				for (nodeid_t j = 0; j < args.graphs[i].num_nodes; j++)
 				{
-					std::cout << "- N: " << std::setfill(' ') << std::setw(3) << j
-										<< " | Parent: " << std::setfill(' ') << std::setw(3) << args.graphs[i].parents[j] 
-										<< " | Distance: " << std::setfill(' ') << std::setw(2) << args.graphs[i].distances[j] << std::endl;
+					std::cout << "- Node: " << std::setfill(' ') << std::setw(3) << j
+										<< " | Parent: " << std::setfill(' ') << std::setw(3) << args.graphs[i].parents[j] << std::endl;
 				}
 			}
 		}
