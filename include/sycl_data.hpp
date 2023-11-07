@@ -159,6 +159,20 @@ public:
 		parents.set_write_back(true);
 	}
 
+	sycl::event init(sycl::queue &q, const nodeid_t source) {
+		return q.submit([&](sycl::handler &h) {
+			sycl::accessor parents_acc{parents, h, sycl::write_only, sycl::no_init};
+
+			h.parallel_for(sycl::range<1>{num_nodes}, [=](sycl::id<1> idx) {
+				int node = idx[0];
+				parents_acc[node] = -1;
+				if (node == source) {
+					parents_acc[node] = node;
+				}
+			});
+		});
+	}
+
 	size_t num_nodes;
 	CSRHostData &host_data;
 	sycl::buffer<nodeid_t, 1> parents, edges;

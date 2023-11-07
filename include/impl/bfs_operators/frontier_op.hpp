@@ -201,13 +201,13 @@ public:
 
     int level = 0;
     while (*old_frontier_size) {
-      auto e = queue.submit([&](s::handler& h) [[intel::reqd_sub_group_size(sg_size)]] {
+      auto e = queue.submit([&](s::handler& h) {
         s::accessor offsets_acc(data.edges_offsets, h, s::read_only);
         s::accessor edges_acc(data.edges, h, s::read_only);
-        s::accessor parents_acc(data.parents, h, s::write_only, s::no_init);
+        s::accessor parents_acc(data.parents, h, s::read_write);
 
         size_t size = *old_frontier_size;
-        h.parallel_for(s::range<1>{size}, [=](s::id<1> idx) {
+        h.parallel_for(s::range<1>{size}, [=](s::id<1> idx) [[intel::reqd_sub_group_size(sg_size)]] {
           s::atomic_ref<int, s::memory_order::relaxed, s::memory_scope::device> frontier_size_ref(*frontier_size);
           int node = frontier[idx[0]];
           

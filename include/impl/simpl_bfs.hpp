@@ -15,6 +15,8 @@
 
 namespace s = sycl;
 
+// TODO fix: this doesn't work after removing distances
+
 class SingleBFSOperator
 {
 public:
@@ -30,12 +32,13 @@ private:
 public:
 	SingleBFS(CSRHostData &data, std::shared_ptr<SingleBFSOperator> op) : data(data), op(op) {}
 
-	bench_time_t run() {
+	bench_time_t run(nodeid_t source = 0) {
 		// SYCL queue definition
 		sycl::queue queue(sycl::gpu_selector_v,
 											sycl::property_list{sycl::property::queue::enable_profiling{}});
 
 		SYCL_SimpleGraphData sycl_data(data);
+		sycl_data.init(queue, source);
 		std::vector<sycl::event> events;
 
 		auto start_glob = std::chrono::high_resolution_clock::now();
