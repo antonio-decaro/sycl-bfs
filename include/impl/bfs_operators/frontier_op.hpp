@@ -58,11 +58,9 @@ public:
           auto local_size = item.get_local_range(0);
 
           // init frontier
-          for (int i = loc_id; i < node_count; i += local_size) {
-            if (parents_acc[node_offset + i] == sources_acc[grp_id]) {
-              frontier[0] = i;
-              break;
-            }
+          if (loc_id == 0) {
+            frontier[0] = sources_acc[grp_id];
+            fsize_prev[0] = 1;
           }
           
           item.barrier(s::access::fence_space::local_space);
