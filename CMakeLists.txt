@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
+set(CMAKE_CXX_STANDARD 17)
 
 project(SYCL_BFS)
 
@@ -7,12 +8,12 @@ if (SYCL_BFS_COMPRESSED_GRAPH)
     add_compile_definitions(SYCL_BFS_COMPRESSED_GRAPH)
 endif()
 
-set(CMAKE_CXX_STANDARD 17)
+option(SUPPORTS_SG_8 on "If on, the device supports Sub-Group size of 8")
+if (SUPPORTS_SG_8)
+    add_compile_definitions(SUPPORTS_SG_8)
+endif()
 
 # set includes
-include_directories(include)
-
-# set include directory
 include_directories(include)
 
 # ask for type of GPU

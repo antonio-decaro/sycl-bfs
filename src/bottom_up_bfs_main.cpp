@@ -30,11 +30,15 @@ int main(int argc, char **argv)
 	try
 	{
 #ifdef SYCL_BFS_COMPRESSED_GRAPH
+#ifdef SUPPORTS_SG_8
 		MultipleGraphBFS<true> bfs8(args.graphs, std::make_shared<BottomUpMBFSOperator<8>>());
+#endif
 		MultipleGraphBFS<true> bfs16(args.graphs, std::make_shared<BottomUpMBFSOperator<16>>());
 		MultipleGraphBFS<true> bfs32(args.graphs, std::make_shared<BottomUpMBFSOperator<32>>());
 #else
+#ifdef SUPPORTS_SG_8
 		MultipleGraphBFS<false> bfs8(args.graphs, std::make_shared<BottomUpMBFSOperator<8>>());
+#endif
 		MultipleGraphBFS<false> bfs16(args.graphs, std::make_shared<BottomUpMBFSOperator<16>>());
 		MultipleGraphBFS<false> bfs32(args.graphs, std::make_shared<BottomUpMBFSOperator<32>>());
 
@@ -47,10 +51,12 @@ int main(int argc, char **argv)
 #endif
 		bench_time_t time;
 
+#ifdef SUPPORTS_SG_8
 		std::cout << "SubGroup size  8:" << std::endl;
 		time = bfs8.run(sources, args.local_size);
 		std::cout << "- Kernel time: " << time.kernel_time << " us" << std::endl;
 		std::cout << "- Total time: " << time.total_time << " us" << std::endl;
+#endif
 
 		std::cout << "SubGroup size 16:" << std::endl;
 		time = bfs16.run(sources, args.local_size);
