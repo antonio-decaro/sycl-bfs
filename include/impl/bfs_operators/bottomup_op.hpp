@@ -57,7 +57,7 @@ class BottomUpMBFSOperator : public MultiBFSOperator
       s::local_accessor<mask_t, 1> running{s::range<1>{1}, cgh};
 
       cgh.parallel_for(s::nd_range<1>{global, local}, [=](s::nd_item<1> item) [[intel::reqd_sub_group_size(sg_size)]] {
-        s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group> running_ar{running[0]};
+        s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group, s::access::address_space::local_space> running_ar{running[0]};
         auto grp_id = item.get_group_linear_id();
         auto loc_id = item.get_local_id(0);
         auto node_offset = nodes_offsets_acc[grp_id];
@@ -84,7 +84,7 @@ class BottomUpMBFSOperator : public MultiBFSOperator
           for (nodeid_t node_id = loc_id; node_id < node_count; node_id += local_size) {
             int node_mask_offet = node_id / MASK_SIZE; // to access the right mask
             mask_t node_bit = 1 << (node_id % MASK_SIZE); // to access the right bit in the mask 
-            s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group> next_ar{next[node_mask_offet]};
+            s::atomic_ref<mask_t, s::memory_order::relaxed, s::memory_scope::work_group, s::access::address_space::local_space> next_ar{next[node_mask_offet]};
 
             if (parents_acc[node_offset + node_id] == -1) {
               for (int i = offsets_acc[node_offset + node_id]; i < offsets_acc[node_offset + node_id + 1]; i++) {
