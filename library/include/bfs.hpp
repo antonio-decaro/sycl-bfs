@@ -74,24 +74,6 @@ public:
           }
         }
 
-        // if (loc_id == 0) {
-        //   out << "parents: ";
-        //   for (int i = 0; i < node_count; i++) {
-        //     out << parents_acc[i] << " ";
-        //   }
-        //   out << sycl::endl;
-        //   out << "offsets: ";
-        //   for (int i = 0; i < node_count + 1; i++) {
-        //     out << offsets_acc[i] << " ";
-        //   }
-        //   out << sycl::endl;
-        //   out << "edges: ";
-        //   for (int i = 0; i < edges_acc.get_count(); i++) {
-        //     out << edges_acc[i] << " ";
-        //   }
-        //   out << sycl::endl;
-        // }
-
         s::group_barrier(item.get_group());
         while (running_ar.load()) {
           if (loc_id < NUM_MASKS) {
@@ -159,8 +141,7 @@ private:
   std::vector<std::vector<node_t>> parents;
 
 public:
-
-  BFS(sycl::queue& queue, std::vector<details::SYGraph>& graphs) : queue(queue) {
+  BFS(sycl::queue& queue, std::vector<SYGraph>& graphs) : queue(queue) {
     for (auto& graph : graphs) {
       parents.push_back(std::vector<node_t>(graph.getSize()));
       instances.emplace_back(queue, graph, 0, parents.back());

@@ -1,32 +1,60 @@
 #!/usr/bin/env python3
-
-import networkx as nx
 import sys
+import random
+import networkx as nx
 
-def generate_random_graph(num_nodes: int, edges_p: float):
-    """
-    Generate a random graph with num_nodes nodes and edges_p probability of
-    having an edge between two nodes.
-    """
-    return nx.fast_gnp_random_graph(num_nodes, edges_p, directed=False)
+
+labels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+use_wildcard = False
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage: python graph_gen.py <num_nodes> <edges_p>')
-        sys.exit(1)
+  if len(sys.argv) < 5:
+    print('Usage: python graph_gen.py <n> <p> <out_data> <out_query> [use_wildcard]')
+    exit(1)
+  if len(sys.argv) == 6:
+    use_wildcard = sys.argv[5] == 'true'
+  
 
-    num_nodes, edges_p = map(int, sys.argv[1:])
-    edges_p = edges_p / 100
+  n = int(sys.argv[1])
+  p = float(int(sys.argv[2]) / 100.0)
 
+  G: nx.Graph = nx.fast_gnp_random_graph(n, p)
+  G.remove_nodes_from(list(nx.isolates(G)))
+  # reset node index
+  G = nx.convert_node_labels_to_integers(G)
+  G = nx.DiGraph(G)
+  n = len(G.nodes)
 
-    graph: nx.Graph = generate_random_graph(num_nodes, edges_p)
+  for i in range(n):
+    G.nodes[i]['label'] = random.choice(labels)
+
+  with open(sys.argv[3], 'w') as f:
+    print(n, len(G.edges), file=f)
+    for i in range(len(G.nodes)):
+      print(G.nodes[i]['label'], file=f)
     
-    # remove non-connected nodes
-    graph.remove_nodes_from(list(nx.isolates(graph)))
-    # remove self loops
-    graph.remove_edges_from(nx.selfloop_edges(graph))
+    for edge in G.edges:
+      print(edge[0], edge[1], file=f)
 
-    print(graph.number_of_nodes())
-    for edge in graph.edges:
-        print(edge[0], edge[1])
-        print(edge[1], edge[0])
+  # generate random subgraph of G
+  subgraph = nx.Graph(G.subgraph(random.sample(G.nodes, random.randint(3, n//1.5))))
+  # remove isolated nodes
+  subgraph.remove_nodes_from(list(nx.isolates(subgraph)))
+  # only one component
+  to_remove = [i for i in subgraph if i not in max(list(nx.connected_components(subgraph)), key=len)]
+  subgraph.remove_nodes_from(to_remove)
+  # reset indices
+  subgraph = nx.convert_node_labels_to_integers(subgraph)
+  subgraph = nx.DiGraph(subgraph)
+  if use_wildcard:
+    wildcard_labels = random.sample(subgraph.nodes, random.randint(0, len(subgraph.nodes)//3))
+    for node in wildcard_labels:
+      subgraph.nodes[node]['label'] = 0
+
+  with open(sys.argv[4], 'w') as f:
+    print(len(subgraph.nodes), len(subgraph.edges), file=f)
+    for i in subgraph.nodes:
+      print(subgraph.nodes[i]['label'], file=f)
+    for edge in subgraph.edges:
+      print(edge[0], edge[1], file=f)
+  

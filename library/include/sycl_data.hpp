@@ -4,10 +4,10 @@
 #include <vector>
 #include <string>
 #include "graph.hpp"
+#include "compressed.hpp"
 #include "types.hpp"
 
 namespace sygraph {
-namespace details {
 
 class SYGraph {
 private:
@@ -57,103 +57,61 @@ public:
 	}
 };
 
+class SYGraphsCompressed {
+private:
+	sycl::buffer<node_t, 1> col_indices;
+	sycl::buffer<size_t, 1> graphs_offests, nodes_offsets, nodes_count, edges_offsets;
+	size_t num_graphs;
+public:
+	SYGraphsCompressed(details::CompressedGraphs& data) : 
+		num_graphs(data.getNumGraphs()),
+		nodes_offsets(sycl::buffer<size_t, 1>(data.getNodesOffsets().data(), sycl::range{data.getNodesOffsets().size()})),
+		graphs_offests(sycl::buffer<size_t, 1>(data.getGraphsOffsets().data(), sycl::range{data.getGraphsOffsets().size()})),
+		nodes_count(sycl::buffer<size_t, 1>(data.getNodesCount().data(), sycl::range{data.getNodesCount().size()})),
+		edges_offsets(sycl::buffer<size_t, 1>{data.getCompressedOffsets().data(), sycl::range{data.getCompressedOffsets().size()}}),
+		col_indices(sycl::buffer<node_t, 1>{data.getCompressedColIndices().data(), sycl::range{data.getCompressedColIndices().size()}}) {}
 
-} // namespace details
+	inline sycl::accessor<size_t, 1, sycl::access::mode::read> getNodesOffsetsDeviceAccessor(sycl::handler& h) {
+		return sycl::accessor {this->nodes_offsets, h};
+	}
+
+	inline sycl::accessor<size_t, 1, sycl::access::mode::read> getGraphsOffsetsDeviceAccessor(sycl::handler& h) {
+		return sycl::accessor {this->graphs_offests, h};
+	}
+
+	inline sycl::accessor<size_t, 1, sycl::access::mode::read> getNodesCountDeviceAccessor(sycl::handler& h) {
+		return sycl::accessor {this->nodes_count, h};
+	}
+
+	inline sycl::accessor<size_t, 1, sycl::access::mode::read> getEdgesOffsetsDeviceAccessor(sycl::handler& h) {
+		return sycl::accessor {this->edges_offsets, h};
+	}
+
+	inline sycl::accessor<node_t, 1, sycl::access::mode::read> getColIndicesDeviceAccessor(sycl::handler& h) {
+		return sycl::accessor {this->col_indices, h};
+	}
+
+	inline sycl::host_accessor<size_t, 1> getNodesOffsetsHostAccessor() {
+		return sycl::host_accessor {this->nodes_offsets};
+	}
+
+	inline sycl::host_accessor<size_t, 1> getGraphsOffsetsHostAccessor() {
+		return sycl::host_accessor {this->graphs_offests};
+	}
+
+	inline sycl::host_accessor<size_t, 1> getNodesCountHostAccessor() {
+		return sycl::host_accessor {this->nodes_count};
+	}
+
+	inline sycl::host_accessor<size_t, 1> getEdgesOffsetsHostAccessor() {
+		return sycl::host_accessor {this->edges_offsets};
+	}
+
+	inline sycl::host_accessor<node_t, 1> getColIndicesHostAccessor() {
+		return sycl::host_accessor {this->col_indices};
+	}
+
+	inline size_t getNumGraphs() const { return this->num_graphs; }
+};
+
 } // namespace sygraph
-
-// class SYCL_CompressedGraphData
-// {
-// public:
-// 	SYCL_CompressedGraphData(CompressedHostData &data) : 
-// 		host_data(data),
-// 		nodes_offsets(sycl::buffer<size_t, 1>(data.nodes_offsets.data(), sycl::range{data.nodes_offsets.size()})),
-// 		graphs_offests(sycl::buffer<size_t, 1>(data.graphs_offsets.data(), sycl::range{data.graphs_offsets.size()})),
-// 		nodes_count(sycl::buffer<size_t, 1>(data.nodes_count.data(), sycl::range{data.nodes_count.size()})),
-// 		edges_offsets(sycl::buffer<size_t, 1>{data.compressed_offsets.data(), sycl::range{data.compressed_offsets.size()}}),
-// 		edges(sycl::buffer<nodeid_t, 1>{data.compressed_edges.data(), sycl::range{data.compressed_edges.size()}}),
-// 		parents(sycl::buffer<nodeid_t, 1>{data.compressed_parents.data(), sycl::range{data.compressed_parents.size()}}) {}
-
-// 	sycl::event init(sycl::queue &q, const std::vector<nodeid_t> &sources, size_t wg_size = DEFAULT_WORK_GROUP_SIZE)
-// 	{
-// 		sycl::buffer<nodeid_t, 1> device_source{sources.data(), sycl::range{sources.size()}};
-
-// 		return q.submit([&](sycl::handler &h) {
-// 			sycl::range global {host_data.num_graphs * wg_size};
-// 			sycl::range local {wg_size};
-
-// 			sycl::accessor sources {device_source, h, sycl::read_only};
-// 			sycl::accessor nodes_acc{nodes_offsets, h, sycl::read_only};
-// 			sycl::accessor nodes_count_acc{nodes_count, h, sycl::read_only};
-// 			sycl::accessor parents_acc{parents, h, sycl::write_only, sycl::no_init};
-
-// 			h.parallel_for(sycl::nd_range<1>{global, local}, [=](sycl::nd_item<1> item) {
-// 				auto gid = item.get_group_linear_id();
-// 				auto lid = item.get_local_linear_id();
-// 				auto local_range = item.get_local_range(0);
-// 				auto nodes_count = nodes_count_acc[gid];
-// 				auto source = sources[gid];
-
-// 				for (int i = lid; i < nodes_count; i += local_range) {
-// 					parents_acc[nodes_acc[gid] + i] = -1;
-// 					if (i == source) {
-// 						parents_acc[nodes_acc[gid] + i] = source;
-// 					}
-// 				}
-// 			}); 
-// 		});
-// 	}
-
-// 	void write_back()
-// 	{
-// 		auto pacc = parents.get_host_access();
-// 		for (int i = 0; i < host_data.compressed_parents.size(); i++)
-// 		{
-// 			host_data.compressed_parents[i] = pacc[i];
-// 		}
-
-// 		host_data.write_back();
-// 	}
-
-// 	CompressedHostData &host_data;
-// 	sycl::buffer<nodeid_t, 1> edges, parents;
-// 	sycl::buffer<size_t, 1> graphs_offests, nodes_offsets, nodes_count, edges_offsets;
-// };
-
-// class SYCL_SimpleGraphData
-// {
-// public:
-// 	SYCL_SimpleGraphData(CSRHostData &data) : 
-// 		host_data(data),
-// 		num_nodes(data.num_nodes),
-// 		edges_offsets(sycl::buffer<size_t, 1>{data.csr.offsets.data(), sycl::range{data.csr.offsets.size()}}),
-// 		edges(sycl::buffer<nodeid_t, 1>{data.csr.edges.data(), sycl::range{data.csr.edges.size()}}),
-// 		parents(sycl::buffer<nodeid_t, 1>{data.parents.data(), sycl::range{data.parents.size()}})
-// 	{
-// 		parents.set_write_back(false);
-// 	}
-
-// 	void write_back()
-// 	{
-// 		parents.set_final_data(host_data.parents.data());
-// 		parents.set_write_back(true);
-// 	}
-
-// 	sycl::event init(sycl::queue &q, const nodeid_t source) {
-// 		return q.submit([&](sycl::handler &h) {
-// 			sycl::accessor parents_acc{parents, h, sycl::write_only, sycl::no_init};
-
-// 			h.parallel_for(sycl::range<1>{num_nodes}, [=](sycl::id<1> idx) {
-// 				int node = idx[0];
-// 				parents_acc[node] = -1;
-// 				if (node == source) {
-// 					parents_acc[node] = node;
-// 				}
-// 			});
-// 		});
-// 	}
-
-// 	size_t num_nodes;
-// 	CSRHostData &host_data;
-// 	sycl::buffer<nodeid_t, 1> parents, edges;
-// 	sycl::buffer<size_t, 1> edges_offsets;
-// };
