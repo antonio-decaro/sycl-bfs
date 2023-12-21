@@ -8,100 +8,47 @@
 #include "types.hpp"
 #include "host_data.hpp"
 
-CSR build_csr(const std::vector<std::vector<nodeid_t>> &adjacency_list)
-{
-	CSR csr;
-	size_t num_nodes = adjacency_list.size();
-	csr.offsets.resize(num_nodes + 1);
-	nodeid_t off = 0;
-	for (nodeid_t i = 0; i < num_nodes; i++)
-	{
-		csr.offsets[i] = off;
-		off += adjacency_list[i].size();
-	}
-	csr.offsets[num_nodes] = off;
+CSRHostData readGraphFromFile(std::string filename, bool labels = false) {
 
-	csr.edges.resize(off);
-	for (nodeid_t i = 0; i < num_nodes; i++)
-	{
-		for (nodeid_t j = 0; j < adjacency_list[i].size(); j++)
-		{
-			csr.edges[csr.offsets[i] + j] = adjacency_list[i][j];
-		}
-	}
-	return csr;
-}
-
-std::vector<std::vector<adjidx_t>> build_adj_matrix(const std::vector<std::vector<nodeid_t>> &adjacency_list)
-{
-	size_t num_nodes = adjacency_list.size();
-	std::vector<std::vector<adjidx_t>> adj_matrix(num_nodes);
-	for (nodeid_t i = 0; i < num_nodes; i++)
-	{
-		adj_matrix[i].resize(num_nodes);
-		for (nodeid_t j = 0; j < num_nodes; j++)
-		{
-			adj_matrix[i][j] = 0;
-		}
-	}
-	for (nodeid_t i = 0; i < num_nodes; i++)
-	{
-		for (nodeid_t j = 0; j < adjacency_list[i].size(); j++)
-		{
-			adj_matrix[i][adjacency_list[i][j]] = 1;
-		}
-	}
-	return adj_matrix;
-}
-
-CSRHostData build_csr_host_data(const std::vector<std::vector<nodeid_t>> &adjacency_list)
-{
-	CSRHostData host_data;
-	host_data.csr = build_csr(adjacency_list);
-	host_data.num_nodes = host_data.csr.offsets.size() - 1;
-	host_data.parents.resize(host_data.num_nodes);
-	std::fill(host_data.parents.begin(), host_data.parents.end(), -1);
-	return host_data;
-}
-
-MatrixHostData build_adj_matrix(std::string path)
-{
-	MatrixHostData host_data;
-	std::ifstream file(path);
-	file >> host_data.num_nodes;
-	host_data.adj_matrix = std::vector<std::vector<adjidx_t>>(
-			host_data.num_nodes,
-			std::vector<adjidx_t>(host_data.num_nodes, 0));
-	int src, dst;
-	while (file >> src >> dst)
-	{
-		host_data.adj_matrix[src][dst] = 1;
-	}
-	file.close();
-
-	return host_data;
-}
-
-std::vector<std::vector<nodeid_t>> read_graph_from_file(std::string path, bool undirected = false)
-{
-	std::vector<std::vector<nodeid_t>> adjacency_list;
 	size_t num_nodes;
+  size_t num_edges;
 
-	std::ifstream file(path);
-	int num_edges = 0;
+	std::ifstream file(filename);
 	file >> num_nodes;
-	adjacency_list.resize(num_nodes);
+  file >> num_edges;
+
+	std::vector<size_t> row_offsets(num_nodes + 1, 0);
+	std::vector<nodeid_t> parents(num_nodes, 0);
+	std::vector<nodeid_t> col_indices(num_edges, 0);
+	std::vector<int> node_labels(num_edges, 0);
+
+	if (labels) {
+		for (int i = 0; i < num_nodes; i++)
+		{
+			file >> node_labels[i];
+		}
+	}
+
 	int src, dst;
-	while (file >> src >> dst)
+	for (int i = 0; i < num_edges; i++)
 	{
-		adjacency_list[src].push_back(dst);
-		if (undirected)
-			adjacency_list[dst].push_back(src);
-		num_edges++;
+		file >> src >> dst;
+		row_offsets[src + 1]++;
+		col_indices[i] = dst;
 	}
 	file.close();
 
-	return adjacency_list;
+	for (int i = 1; i < row_offsets.size(); i++) {
+		row_offsets[i] += row_offsets[i - 1];
+	}
+
+	CSRHostData ret;
+	ret.csr.offsets = row_offsets;
+	ret.csr.edges = col_indices;
+	ret.num_nodes = num_nodes;
+	ret.parents = parents;
+
+	return ret;
 }
 
 #endif
