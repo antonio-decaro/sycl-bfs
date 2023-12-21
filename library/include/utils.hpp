@@ -44,4 +44,10 @@ Graph readGraphFromFile(std::string filename) {
   return Graph{row_offsets, col_indices, node_labels};
 }
 
+double getMicorseconds(sycl::event& e) {
+	auto end = e.get_profiling_info<sycl::info::event_profiling::command_end>();
+	auto start = e.get_profiling_info<sycl::info::event_profiling::command_start>();
+	return (end - start) / 1000.0;
+}
+
 } // namespace sygraph

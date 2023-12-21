@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 	}
 
 	std::cout << "[*] " << args.graphs.size() << " Graphs loaded!" << std::endl;
-	std::vector<sygraph::details::SYGraph> graphs;
+	std::vector<sygraph::SYGraph> graphs;
 	for (int i = 0; i < args.graphs.size(); i++)
 	{
 		graphs.emplace_back(args.graphs[i].getRowOffsets(), args.graphs[i].getColIndices());
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 	// run BFS
 	try
 	{
-    sycl::queue q {sycl::gpu_selector_v};
+    sycl::queue q {sycl::gpu_selector_v, sycl::property::queue::enable_profiling()};
 		sygraph::BFS bfs(q, graphs);
 
 		bfs.run(args.local_size);
@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 		bfs.wait();
 		end = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+		std::cout << "- Kernel Time: " << sygraph::getMicorseconds(bfs.getEvents()[0]) << " us" << std::endl;
 		std::cout << "- Total time: " << time.count() << " us" << std::endl;
 #endif
 
@@ -55,6 +56,7 @@ int main(int argc, char **argv)
     bfs.wait();
     end = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+		std::cout << "- Kernel Time: " << sygraph::getMicorseconds(bfs.getEvents()[0]) << " us" << std::endl;
 		std::cout << "- Total time: " << time.count() << " us" << std::endl;
 
 		std::cout << "SubGroup size 32:" << std::endl;
@@ -63,6 +65,7 @@ int main(int argc, char **argv)
 		bfs.wait();
     end = std::chrono::high_resolution_clock::now();
     time = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+		std::cout << "- Kernel Time: " << sygraph::getMicorseconds(bfs.getEvents()[0]) << " us" << std::endl;
 		std::cout << "- Total time: " << time.count() << " us" << std::endl;
 
 		if (args.print_result)

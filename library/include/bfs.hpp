@@ -162,6 +162,14 @@ public:
     }
   }
 
+  std::vector<sycl::event> getEvents() {
+    std::vector<sycl::event> events;
+    for (auto& instance : instances) {
+      events.push_back(instance.getEvent());
+    }
+    return events;
+  }
+
   inline sycl::buffer<node_t, 1>& getParentsBuf(size_t idx) {
     if (idx >= instances.size()) throw std::out_of_range("Index out of range");
     return instances[idx].getParentsSYCLBuffer();
