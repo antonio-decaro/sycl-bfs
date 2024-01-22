@@ -19,7 +19,7 @@ include_directories(include)
 # ask for type of GPU
 set (SYCL_TARGET "intel_gpu_acm_g10" CACHE STRING "Target for SYCL")
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=${SYCL_TARGET}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl")
 
 # add target
-add_executable(main src/bottom_up_bfs_main.cpp)
+add_executable(sycl_bfs src/bottom_up_bfs_main.cpp)
